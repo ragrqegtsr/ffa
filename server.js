@@ -1,6 +1,6 @@
 // server.js
-// Finanz‑Weg — minimal WebSocket backend (Node + ws + express)
-// Run locally:  npm i  &&  node server.js
+// Finanz‑Weg — WebSocket backend with AUTO DRAW on host:start and host:next
+// Run: npm i && node server.js
 
 const express = require('express');
 const { WebSocketServer } = require('ws');
@@ -15,7 +15,36 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 // --- In‑memory store (dev only) ---
 const SESSIONS = new Map(); // code -> session state
-const CLIENTS = new Map();  // ws -> {role, sessionCode, playerId}
+const CLIENTS  = new Map(); // ws -> {role, sessionCode, playerId}
+
+// --- Simple deck côté serveur (remplace par ta base plus tard)
+const DECK = {
+  evenement: [
+    { id:'e1', type:'evenement',  titre:'Changement de job', imperative:false, texte:'Salaire +10%, coût de vie +5%.' },
+    { id:'e2', type:'evenement',  titre:'Déménagement',      imperative:true,  texte:'Coût de vie +10% (impératif).' }
+  ],
+  proposition: [
+    { id:'p1', type:'proposition', titre:'bAV entreprise',    imperative:false, texte:'Convertir 4% du brut en bAV.' },
+    { id:'p2', type:'proposition', titre:'Assurance BU',      imperative:false, texte:'600€/an, couverture invalidité pro.' }
+  ],
+  contrainte: [
+    { id:'c1', type:'contrainte',  titre:'Panne majeure',     imperative:true,  texte:'Dépense imprévue 1 200€.' },
+    { id:'c2', type:'contrainte',  titre:'Marché en berne',   imperative:false, texte:'Patrimoine -3% cette année.' }
+  ],
+  bonus: [
+    { id:'b1', type:'bonus',       titre:'Prime',             imperative:false, texte:'+1 500€ net.' },
+    { id:'b2', type:'bonus',       titre:'Marché haussier',   imperative:false, texte:'Patrimoine +5%.' }
+  ]
+};
+const pick = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+function drawFour(){
+  return {
+    evenement:  pick(DECK.evenement),
+    proposition: pick(DECK.proposition),
+    contrainte:  pick(DECK.contrainte),
+    bonus:       pick(DECK.bonus),
+  };
+}
 
 const now = () => new Date().toISOString().slice(11,19);
 const log = (...a) => console.log(`[${now()}]`, ...a);
@@ -63,27 +92,25 @@ function applyEffects(session){
     ['evenement','proposition','contrainte','bonus'].forEach(type => {
       const card = session.active[type];
       if(!card) return;
-      const choiceId = dec[type] || (card.obligation ? card.choices[0].id : null);
-      if(!choiceId) return;
-      const eff = card.choices.find(x=>x.id===choiceId)?.effets || {};
-      // Simplified transforms (traits can be applied client-side if needed)
-      if(eff.dsalairePct) p.salaire = Math.max(0, Math.round(p.salaire*(1+eff.dsalairePct)));
-      if(eff.dcoutPct)  p.coutDeVie = Math.max(0, Math.round(p.coutDeVie*(1+eff.dcoutPct)));
-      if(eff.depenseUnique) p.patrimoine = Math.max(0, p.patrimoine - eff.depenseUnique);
-      if(eff.gainUnique)    p.patrimoine += eff.gainUnique;
-      if(eff.depenseFixe)   p.patrimoine = Math.max(0, p.patrimoine - eff.depenseFixe);
-      if(eff.dpatrimoinePct) p.patrimoine = Math.max(0, Math.round(p.patrimoine*(1+eff.dpatrimoinePct)));
-      if(eff.rentenBonus) p.rentenpunkte = +(p.rentenpunkte + eff.rentenBonus).toFixed(2);
+      const choiceId = dec[type] || (card.imperative ? (card.choices?.[0]?.id || '_AUTO') : null);
+      if(!choiceId && !card.imperative) return;
+      const eff = card.choices?.find(x=>x.id===choiceId)?.effets || {};
+      if(eff.dsalairePct)   p.salaire     = Math.max(0, Math.round(p.salaire*(1+eff.dsalairePct)));
+      if(eff.dcoutPct)      p.coutDeVie   = Math.max(0, Math.round(p.coutDeVie*(1+eff.dcoutPct)));
+      if(eff.depenseUnique) p.patrimoine  = Math.max(0, p.patrimoine - eff.depenseUnique);
+      if(eff.gainUnique)    p.patrimoine  = p.patrimoine + eff.gainUnique;
+      if(eff.depenseFixe)   p.patrimoine  = Math.max(0, p.patrimoine - eff.depenseFixe);
+      if(eff.dpatrimoinePct)p.patrimoine  = Math.max(0, Math.round(p.patrimoine*(1+eff.dpatrimoinePct)));
+      if(eff.rentenBonus)   p.rentenpunkte = +(p.rentenpunkte + eff.rentenBonus).toFixed(2);
       if(eff.bav && !p.marqueurs.includes('bAV')) p.marqueurs.push('bAV');
-      if(eff.bu && !p.marqueurs.includes('BU')) p.marqueurs.push('BU');
+      if(eff.bu  && !p.marqueurs.includes('BU'))  p.marqueurs.push('BU');
     });
   });
-  // Banque
   session.players.forEach(p => {
-    const net = p.salaire - p.coutDeVie;
-    p.patrimoine = Math.max(0, Math.round(p.patrimoine + net));
-    const rp = Math.max(0, Math.min(2, p.salaire/avgSalary));
-    p.rentenpunkte = +(p.rentenpunkte + rp).toFixed(2);
+    const net = (p.salaire||0) - (p.coutDeVie||0);
+    p.patrimoine = Math.max(0, Math.round((p.patrimoine||0) + net));
+    const rp = Math.max(0, Math.min(2, (p.salaire||0)/avgSalary));
+    p.rentenpunkte = +((p.rentenpunkte||0) + rp).toFixed(2);
   });
 }
 
@@ -95,7 +122,6 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw) } catch { return; }
     const c = CLIENTS.get(ws);
 
-    // HOST: create session
     if(msg.type==='host:create'){
       const code = newSessionCode();
       const session = {
@@ -103,7 +129,7 @@ wss.on('connection', (ws) => {
         hostId: newId(),
         status:'lobby',
         settings:{ ageStart:25, ageEnd:67, timerSec:90, timerNegSec:150 },
-        turn:0, age:null, phase:'decisions',
+        turn:0, age:null, phase:'running',
         players:[], active:{}, decisions:{}
       };
       SESSIONS.set(code, session);
@@ -113,50 +139,31 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // HOST: start game
     if(msg.type==='host:start'){
       const s = ensureSession(msg.code);
       s.settings = msg.settings||s.settings;
       s.status='running';
-      s.turn=0; s.age=s.settings.ageStart-1; s.phase='decisions';
+      s.turn=0; s.age=s.settings.ageStart; s.phase='running';
       s.players.forEach(p=>{p.age=s.age; p.answered=false});
+      s.active = drawFour();
       broadcast(s, {type:'state', session: sanitizeForClients(s)});
       return;
     }
 
-    // HOST: draw cards
-    if(msg.type==='host:draw'){
-      const s = ensureSession(msg.code);
-      s.active = msg.active; // trust client deck for prototype
-      broadcast(s, {type:'state', session: sanitizeForClients(s)});
-      return;
-    }
-
-    // HOST: next year
     if(msg.type==='host:next'){
       const s = ensureSession(msg.code);
-      if(s.age>=s.settings.ageEnd){ s.status='ended'; s.phase='ended'; }
-      else { s.turn++; s.age++; s.players.forEach(p=>{p.age=s.age; p.answered=false}); }
+      if(s.age>=s.settings.ageEnd){ s.status='ended'; s.phase='ended'; broadcast(s, {type:'state', session: sanitizeForClients(s)}); return; }
+      s.turn++; s.age++; s.players.forEach(p=>{p.age=s.age; p.answered=false});
+      s.active = drawFour();
       broadcast(s, {type:'state', session: sanitizeForClients(s)});
       return;
     }
 
-    // HOST: phase switch
-    if(msg.type==='host:phase'){
-      const s = ensureSession(msg.code);
-      s.phase = msg.phase;
-      if(msg.phase==='banque'){ applyEffects(s) }
-      broadcast(s, {type:'state', session: sanitizeForClients(s)});
-      return;
-    }
-
-    // STUDENT: join
     if(msg.type==='student:join'){
       const s = ensureSession(msg.code);
       if(s.status!=='lobby' && s.status!=='running') return;
-      if(s.players.length>=12) return;
-      const already = s.players.find(p=>p.name===msg.name);
-      if(already) return ws.send(JSON.stringify({type:'error', error:'NAME_TAKEN'}));
+      if(s.players.length>=24) return;
+      if(s.players.find(p=>p.name===msg.name)) return ws.send(JSON.stringify({type:'error', error:'NAME_TAKEN'}));
       const p = {
         id: newId(), name: msg.name||'Étudiant', profileId: msg.profileId||'starter',
         age: s.age, patrimoine: 2000, salaire: 24000, coutDeVie:15000,
@@ -169,22 +176,20 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // STUDENT: decision
     if(msg.type==='student:decision'){
       const s = ensureSession(msg.code);
       if(!s.decisions[msg.playerId]) s.decisions[msg.playerId] = {};
       if(!s.decisions[msg.playerId][s.turn]) s.decisions[msg.playerId][s.turn] = {};
       s.decisions[msg.playerId][s.turn][msg.cardType] = msg.choiceId;
       const p = s.players.find(x=>x.id===msg.playerId);
-      const allTypes = ['evenement','proposition','contrainte','bonus'];
-      const full = allTypes.every(t => s.active[t] ? !!s.decisions[msg.playerId][s.turn][t] : true);
-      if(p) p.answered = full;
+      const all = ['evenement','proposition','contrainte','bonus'].every(t => s.active[t] ? !!s.decisions[msg.playerId][s.turn][t] : true);
+      if(p) p.answered = all;
       broadcast(s, {type:'state', session: sanitizeForClients(s)});
       return;
     }
   });
 
-  ws.on('close', () => { CLIENTS.delete(ws); });
+  ws.on('close', () => { CLIENTS.delete(ws) });
 });
 
 const PORT = process.env.PORT||3000;
