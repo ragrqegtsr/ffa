@@ -1,11 +1,10 @@
 // server.js
-// Finanz‑Weg — WebSocket backend
-// Features:
-// - AUTO DRAW of 4 cards on host:start and host:next
-// - Random profile assignment on join
-// - student:ready flag
-// - Decisions can carry extra payload for investment cards (requiresInvestment)
-// Run: npm i && node server.js
+// Finanz‑Weg — WebSocket backend (AUTO DRAW + Random Profiles + Ready Flag + APPLY EFFECTS per Year)
+//
+// This version applies effects on each host:next BEFORE advancing the year
+// so students' choices impact patrimoine/salaire/coutDeVie/rentenpunkte.
+//
+// Run locally: npm i express ws nanoid && node server.js
 
 const express = require('express');
 const { WebSocketServer } = require('ws');
@@ -22,7 +21,7 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 const SESSIONS = new Map(); // code -> session state
 const CLIENTS  = new Map(); // ws -> {role, sessionCode, playerId}
 
-// --- Simple deck côté serveur (replace later by your DB)
+// --- Simple deck côté serveur (replace later by your DB) ---
 const DECK = {
   evenement: [
     { id:'e1', type:'evenement',  titre:'Changement de job', imperative:false, texte:'Salaire +10%, coût de vie +5%.' },
@@ -72,6 +71,7 @@ function sanitizeForClients(session){
       coutDeVie:p.coutDeVie, rentenpunkte:p.rentenpunkte,
       marqueurs:p.marqueurs, answered:p.answered, ready:!!p.ready
     })),
+    // expose decisions to help clients show "progress"
     decisions: session.decisions
   };
 }
@@ -90,19 +90,34 @@ function ensureSession(code){
   return s;
 }
 
-// Example yearly settlement
+// === EFFECTS ENGINE ===
+// Applies decisions for the *current* turn to each player, then computes yearly settlement.
 function applyEffects(session){
   const avgSalary = 42000;
   const turn = session.turn;
+
   session.players.forEach(p => {
     const dec = (session.decisions[p.id] && session.decisions[p.id][turn]) || {};
     ['evenement','proposition','contrainte','bonus'].forEach(type => {
       const card = session.active[type];
       if(!card) return;
+
       const entry = dec[type];
       const choiceId = (entry && (entry.choiceId || entry)) || null;
       const extra = (entry && entry.extra) || null;
 
+      // Auto-apply imperative cards if no choice was provided
+      if(!choiceId && card.imperative){
+        if(card.id==='e2'){ // Déménagement: coût de vie +10%
+          p.coutDeVie = Math.max(0, Math.round((p.coutDeVie||0)*1.10));
+        }
+        if(card.id==='c1'){ // Panne majeure: -1200€
+          p.patrimoine = Math.max(0, (p.patrimoine||0) - 1200);
+        }
+        return;
+      }
+
+      // Investment cards accepted with amounts
       if(card.requiresInvestment && choiceId==='ACCEPT' && extra){
         p.patrimoine = Math.max(0, (p.patrimoine||0) - Math.max(0, +extra.amountInit || 0));
         p.patrimoine = Math.max(0, (p.patrimoine||0) - Math.max(0, +extra.amountMonthly || 0));
@@ -110,11 +125,12 @@ function applyEffects(session){
         return;
       }
 
-      if(card.type==='evenement' && card.id==='e1' && choiceId==='A'){ 
+      // Minimal demo effects based on IDs (extend with your own rules/db mapping)
+      if(card.type==='evenement' && card.id==='e1' && choiceId==='A'){ // job change accepted
         p.salaire = Math.max(0, Math.round((p.salaire||0)*1.10));
         p.coutDeVie = Math.max(0, Math.round((p.coutDeVie||0)*1.05));
       }
-      if(card.type==='contrainte' && card.id==='c1'){
+      if(card.type==='contrainte' && card.id==='c1'){ // panne
         p.patrimoine = Math.max(0, (p.patrimoine||0) - 1200);
       }
       if(card.type==='bonus' && card.id==='b1'){
@@ -122,6 +138,8 @@ function applyEffects(session){
       }
     });
   });
+
+  // == Yearly settlement ==
   session.players.forEach(p => {
     const net = (p.salaire||0) - (p.coutDeVie||0);
     p.patrimoine = Math.max(0, Math.round((p.patrimoine||0) + net));
@@ -138,6 +156,7 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw) } catch { return; }
     const c = CLIENTS.get(ws);
 
+    // HOST: create session
     if(msg.type==='host:create'){
       const code = newSessionCode();
       const session = {
@@ -155,25 +174,45 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    // HOST: start (auto draw for turn 0)
     if(msg.type==='host:start'){
       const s = ensureSession(msg.code);
       s.status='running';
       s.turn=0; s.age=s.settings.ageStart; s.phase='running';
-      s.players.forEach(p=>{p.age=s.age; p.answered=false});
+      s.players.forEach(p=>{p.age=s.age; p.answered=false; p.ready=false});
       s.active = drawFour();
       broadcast(s, {type:'state', session: sanitizeForClients(s)});
       return;
     }
 
+    // HOST: next (APPLY EFFECTS for current turn, then advance & auto draw)
     if(msg.type==='host:next'){
       const s = ensureSession(msg.code);
-      if(s.age>=s.settings.ageEnd){ s.status='ended'; s.phase='ended'; broadcast(s, {type:'state', session: sanitizeForClients(s)}); return; }
-      s.turn++; s.age++; s.players.forEach(p=>{p.age=s.age; p.answered=false});
+
+      // 1) Apply effects for the turn that just finished
+      applyEffects(s);
+
+      // 2) End condition
+      if(s.age>=s.settings.ageEnd){
+        s.status='ended';
+        s.phase='ended';
+        broadcast(s, {type:'state', session: sanitizeForClients(s)});
+        return;
+      }
+
+      // 3) Advance to next year
+      s.turn++;
+      s.age++;
+      s.players.forEach(p=>{p.age=s.age; p.answered=false; p.ready=false});
+
+      // 4) Draw next four cards
       s.active = drawFour();
+
       broadcast(s, {type:'state', session: sanitizeForClients(s)});
       return;
     }
 
+    // STUDENT: join (random profile assigned)
     if(msg.type==='student:join'){
       const s = ensureSession(msg.code);
       if(s.status!=='lobby' && s.status!=='running') return;
@@ -193,6 +232,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    // STUDENT: ready
     if(msg.type==='student:ready'){
       const s = ensureSession(msg.code);
       const p = s.players.find(x=>x.id===msg.playerId);
@@ -200,6 +240,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    // STUDENT: decision (supports extra payload for investments)
     if(msg.type==='student:decision'){
       const s = ensureSession(msg.code);
       const { playerId, cardType } = msg;
