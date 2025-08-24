@@ -3,7 +3,7 @@
 ## Structure
 ```
 finanz-weg/
-├─ server.js
+├─ server-2.js
 ├─ package.json
 └─ public/
    ├─ host.html
