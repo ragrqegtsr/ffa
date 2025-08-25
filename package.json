@@ -2,7 +2,7 @@
   "name": "finanz-weg",
   "version": "1.0.0",
   "description": "Finanz-Weg realtime WebSocket backend + static pages",
-  "main": "server.js",
+  "main": "server-2.js",
   "scripts": {
     "start": "node server.js"
   },
