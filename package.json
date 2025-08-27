@@ -1,10 +1,10 @@
 {
   "name": "finanz-weg",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Finanz-Weg realtime WebSocket backend + static pages",
   "main": "server-2.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server-2.js"
   },
   "dependencies": {
     "express": "^4.19.2",
