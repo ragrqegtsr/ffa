@@ -1,401 +1,518 @@
-/**
- * Finanz-Weg — WebSocket server
- * - Pause stricte après le tour 21 (passage à 22 via host:continue)
- * - Journal central des décisions (ts, playerId, name, turn, type, action, extra, wealth, rp, salary, costOfLiving)
- * - Mini-éditeur (host:editDecision)
- * - Cartes avec champs supplémentaires : resume, impacts, exemples, conseils (placeholders)
- *
- * Démarrage: node server-2.js
- * Variables d'env: PORT
- */
 
+const express = require('express');
 const http = require('http');
-const crypto = require('crypto');
-const { WebSocketServer } = require('ws');
+const WebSocket = require('ws');
+const { customAlphabet, nanoid } = require('nanoid');
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
+const app = express();
+app.use(express.static('public'));
 
-// ---- State ----
-/**
- * sessions: Map<code, Session>
- * Session = {
- *   code, createdAt, age, turn, phase, paused, deadline,
- *   players: Player[],
- *   active: { evenement?, proposition?, contrainte?, bonus? },
- *   decisions: { [playerId]: { [turn]: { [type]: Decision } } },
- *   logs: LogItem[]
- * }
- * Player = {
- *   id, name,
- *   patrimoine, rentenpunkte, salaire, coutDeVie,
- *   answered, statusLight, lastActive, tourPerso
- * }
- * Decision = { choiceId?, label?, extra? }
- * LogItem = { ts, playerId, name, turn, type, action, extra, wealth, rp, salary, costOfLiving }
- */
-const sessions = new Map();
-// sockets meta
-const sockets = new WeakMap(); // ws -> { role: 'host'|'student', code, playerId? }
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server, path: '/ws' });
 
-const START_AGE = 18;
-const TURN_MIN = 1;
-const TURN_MAX = 42;
+/** ===== Helpers ===== */
+const codeId = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 4);
+const now = () => Date.now();
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const HOST_TURN_SEC = 3*60 + 45;   // 3:45
+const AUTO_TURN_SEC = 2*60 + 15;   // 2:15
 
-// ---- HTTP + WS setup ----
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, sessions: sessions.size }));
-    return;
+function phaseForTurn(t){
+  if(t>=1 && t<=7)  return {id:'A', start:1, end:7, host:true};
+  if(t>=8 && t<=21) return {id:'B', start:8, end:21, host:false};
+  if(t>=22 && t<=26) return {id:'C', start:22, end:26, host:true};
+  if(t>=27 && t<=37) return {id:'D', start:27, end:37, host:false};
+  if(t>=38 && t<=42) return {id:'E', start:38, end:42, host:true};
+  return {id:'A', start:1, end:7, host:true};
+}
+
+function phaseWindowSec(phaseId){
+  if(phaseId==='B') return (21-8+1)*AUTO_TURN_SEC; // 14 tours
+  if(phaseId==='D') return (37-27+1)*AUTO_TURN_SEC; // 11 tours
+  return HOST_TURN_SEC;
+}
+
+function makeBlankPlayer(name){
+  return {
+    id: nanoid(10),
+    name: name || 'Étudiant',
+    role: 'student',
+    tourPerso: 1,
+    patrimoine: 0,
+    salaire: 0,
+    costOfLiving: 0,
+    rentenpunkte: 0,
+    statusLight: 'red',
+    lastActive: null,
+    answered: false
+  };
+}
+
+function cardFromTemplate(turn, type){
+  // Generic demo content, can be replaced by real content later
+  const titles = {
+    evenement: `Évènement de l'année ${turn}`,
+    proposition: `Proposition d'investissement ${turn}`,
+    contrainte: `Contrainte financière ${turn}`,
+    bonus: `Bonus/opportunité ${turn}`
+  };
+  const texts = {
+    evenement: `Une situation particulière survient à l'année ${turn}.`,
+    proposition: `Option d'investir avec un montant de base et/ou mensuel.`,
+    contrainte: `Une dépense ou obligation surgit à l'année ${turn}.`,
+    bonus: `Un avantage potentiel est proposé cette année.`
+  };
+  const isInvest = (type==='proposition');
+  return {
+    type,
+    titre: titles[type] || `Carte ${type} ${turn}`,
+    texte: texts[type] || '',
+    imperative: (type==='contrainte' || type==='evenement') ? false : false,
+    requiresInvestment: isInvest,
+    resume: `Résumé ${type} — année ${turn}.`,
+    impacts: `Impacts financiers potentiels à l'année ${turn}.`,
+    exemples: `Exemples concrets liés à ${type} (année ${turn}).`,
+    conseils: `Conseils pour gérer ${type} à l'année ${turn}.`,
+    // optional: choices for non-investment cards
+    choices: !isInvest ? [
+      { id:'A', label:'Accepter' },
+      { id:'B', label:'Refuser' }
+    ] : undefined
+  };
+}
+
+function generateDeck(){
+  const deck = [];
+  for(let t=1; t<=42; t++){
+    deck.push({
+      turn: t,
+      age: 18 + (t-1),
+      evenement: cardFromTemplate(t, 'evenement'),
+      proposition: cardFromTemplate(t, 'proposition'),
+      contrainte: cardFromTemplate(t, 'contrainte'),
+      bonus: cardFromTemplate(t, 'bonus')
+    });
   }
-  res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-  res.end('Finanz-Weg WS server up. Use WebSocket at ws(s)://<host>/ws');
-});
-
-const wss = new WebSocketServer({ noServer: true });
-server.on('upgrade', (req, socket, head) => {
-  if (req.url !== '/ws') {
-    socket.destroy();
-    return;
-  }
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit('connection', ws, req);
-  });
-});
-
-wss.on('connection', (ws) => {
-  ws.on('message', (buf) => {
-    let m;
-    try { m = JSON.parse(buf.toString()); } catch (e) { return; }
-    handleMessage(ws, m);
-  });
-  ws.on('close', () => { sockets.delete(ws); });
-});
-
-server.listen(PORT, () => {
-  console.log('WS server listening on', PORT);
-});
-
-// ---- Helpers ----
-function randCode(len = 4) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
+  return deck;
 }
-function phaseFromTurn(t) {
-  if (t >= 1 && t <= 7) return 'A';
-  if (t >= 8 && t <= 21) return 'B';
-  if (t >= 22 && t <= 26) return 'C';
-  if (t >= 27 && t <= 37) return 'D';
-  if (t >= 38 && t <= 42) return 'E';
-  return '—';
+
+function defaultSession(code){
+  return {
+    code,
+    started: false,
+    paused: false,
+    turnGlobal: 1,
+    phase: 'A',
+    deadline: null,
+    deck: [],
+    players: new Map(),       // playerId -> player
+    decisions: new Map(),     // playerId -> Map(turn -> {type -> decision})
+    logs: [],
+    clientSockets: new Set(), // set of ws for all connected to this session
+    hostSockets: new Set()    // set of host ws
+  };
 }
-function clampTourPerso(t, phase) {
-  const ranges = { A: [1, 7], B: [8, 21], C: [22, 26], D: [27, 37], E: [38, 42] };
-  const [lo, hi] = ranges[phase] || [TURN_MIN, TURN_MAX];
-  if (typeof t !== 'number') return lo;
-  return Math.max(lo, Math.min(hi, t));
-}
-function calcAge(turn) {
-  return START_AGE + Math.max(0, (turn | 0) - 1);
-}
-function ensureSession(code) {
-  let s = sessions.get(code);
-  if (!s) {
-    s = {
-      code,
-      createdAt: Date.now(),
-      age: START_AGE,
-      turn: 0,
-      phase: '—',
-      paused: false,
-      deadline: null,
-      players: [],
-      active: {},
-      decisions: {},
-      logs: []
+
+function sessionViewFor(wsCtx, session){
+  // Build a per-client snapshot
+  const isHost = wsCtx && wsCtx.role==='host';
+  const phase = phaseForTurn(session.turnGlobal);
+  const view = {
+    code: session.code,
+    phase: session.phase || phase.id,
+    paused: !!session.paused,
+    deadline: session.deadline,
+    logs: session.logs.slice(-2000) // keep reasonably sized
+  };
+
+  // Players list
+  const playersArr = Array.from(session.players.values()).map(p=>{
+    return {
+      id: p.id,
+      name: p.name,
+      tourPerso: p.tourPerso,
+      patrimoine: p.patrimoine,
+      salaire: p.salaire,
+      costOfLiving: p.costOfLiving,
+      rentenpunkte: p.rentenpunkte,
+      statusLight: p.statusLight,
+      lastActive: p.lastActive,
+      answered: !!p.answered
     };
-    sessions.set(code, s);
-  }
-  return s;
-}
-function broadcast(code, payload) {
-  const msg = JSON.stringify(payload);
-  wss.clients.forEach((client) => {
-    const meta = sockets.get(client);
-    if (meta && meta.code === code && client.readyState === 1) {
-      client.send(msg);
+  });
+  view.players = playersArr;
+
+  // Which turn to show?
+  if(isHost || phase.host){
+    view.turn = session.turnGlobal;
+    const d = session.deck[session.turnGlobal-1] || null;
+    if(d){
+      view.age = d.age;
+      view.active = {
+        evenement: d.evenement,
+        proposition: d.proposition,
+        contrainte: d.contrainte,
+        bonus: d.bonus
+      };
     }
+  } else {
+    // auto-phase for student: show their personal turn
+    const me = wsCtx && session.players.get(wsCtx.playerId);
+    const t = me ? me.tourPerso : session.turnGlobal;
+    view.turn = t;
+    const d = session.deck[t-1] || null;
+    if(d){
+      view.age = d.age;
+      view.active = {
+        evenement: d.evenement,
+        proposition: d.proposition,
+        contrainte: d.contrainte,
+        bonus: d.bonus
+      };
+    }
+  }
+
+  // Decisions structure for frontend (object-like)
+  const decisions = {};
+  session.decisions.forEach((byTurn, pid)=>{
+    decisions[pid] = {};
+    byTurn.forEach((perType, turn)=>{
+      decisions[pid][turn] = Object.assign({}, perType);
+    });
+  });
+  view.decisions = decisions;
+
+  return view;
+}
+
+function broadcastState(session){
+  session.clientSockets.forEach(ws=>{
+    try{
+      const ctx = CLIENTS.get(ws);
+      const snap = sessionViewFor(ctx, session);
+      ws.send(JSON.stringify({ type:'state', session: snap }));
+    }catch(e){}
+  });
+  session.hostSockets.forEach(ws=>{
+    try{
+      const ctx = CLIENTS.get(ws);
+      const snap = sessionViewFor(ctx, session);
+      ws.send(JSON.stringify({ type:'state', session: snap }));
+    }catch(e){}
   });
 }
-function publicSession(s) {
-  // rien de sensible ici, on renvoie tout ce dont les clients ont besoin
-  return {
-    code: s.code,
-    createdAt: s.createdAt,
-    age: s.age,
-    turn: s.turn,
-    phase: s.phase,
-    paused: s.paused,
-    deadline: s.deadline,
-    players: s.players.map(p => ({
-      id: p.id, name: p.name,
-      patrimoine: p.patrimoine | 0,
-      rentenpunkte: Number(p.rentenpunkte || 0),
-      salaire: p.salaire | 0,
-      coutDeVie: p.coutDeVie | 0,
-      answered: !!p.answered,
-      statusLight: p.statusLight || 'red',
-      lastActive: p.lastActive || null,
-      tourPerso: p.tourPerso ?? null
-    })),
-    active: s.active,
-    decisions: s.decisions,
-    logs: s.logs
-  };
+
+function setDeadline(session, phaseId){
+  const ph = phaseId || session.phase || phaseForTurn(session.turnGlobal).id;
+  const sec = (ph==='A' || ph==='C' || ph==='E') ? HOST_TURN_SEC : phaseWindowSec(ph);
+  session.deadline = now() + sec*1000;
 }
-function pushState(s) {
-  s.phase = s.phase || phaseFromTurn(s.turn);
-  s.age = calcAge(s.turn || 1);
-  // Update answered flags
-  const neededTypes = ['evenement', 'proposition', 'contrainte', 'bonus'].filter(t => !!s.active[t]);
-  s.players.forEach(p => {
-    const d = s.decisions?.[p.id]?.[s.turn] || {};
-    p.answered = neededTypes.every(t => !!d[t]);
-  });
-  broadcast(s.code, { type: 'state', session: publicSession(s) });
+
+function recalcPhase(session){
+  const ph = phaseForTurn(session.turnGlobal);
+  session.phase = ph.id;
+  // pause only once at end of B (turnGlobal==21)
+  session.paused = (session.turnGlobal===21);
 }
-function setDeadline(s, seconds) {
-  if (!seconds) { s.deadline = null; return; }
-  s.deadline = Date.now() + seconds * 1000;
+
+function ensureDecisionsMap(session, playerId, turn){
+  if(!session.decisions.has(playerId)) session.decisions.set(playerId, new Map());
+  const byTurn = session.decisions.get(playerId);
+  if(!byTurn.has(turn)) byTurn.set(turn, {});
+  return byTurn.get(turn);
 }
-function makeCardsForTurn(turn) {
-  // placeholders simples – à remplacer par votre deck réel
-  const mk = (type, titre) => ({
-    type,
-    titre,
-    texte: `Tour ${turn}: ${titre} — texte descriptif.`,
-    imperative: type === 'contrainte' ? true : false,
-    requiresInvestment: type === 'proposition' && (turn % 2 === 0),
-    // nouveaux champs pour Drawer étudiant
-    resume: `Résumé de ${titre}.`,
-    impacts: `Impacts possibles de ${titre}.`,
-    exemples: `Exemples concrets de ${titre}.`,
-    conseils: `Conseils pour gérer ${titre}.`,
-    // choix quand pas d'investissement
-    choices: [
-      { id: 'ACCEPT', label: 'Accepter' },
-      { id: 'REFUSE', label: 'Refuser' }
-    ]
-  });
-  return {
-    evenement: mk('evenement', 'Évènement du tour'),
-    proposition: mk('proposition', 'Proposition du tour'),
-    contrainte: mk('contrainte', 'Contrainte du tour'),
-    bonus: mk('bonus', 'Bonus du tour')
-  };
+
+function computeAnsweredForPlayer(session, p){
+  const turn = (phaseForTurn(session.turnGlobal).host) ? session.turnGlobal : p.tourPerso;
+  const decs = (session.decisions.get(p.id) || new Map()).get(turn) || {};
+  const required = ['evenement','proposition','contrainte','bonus'].filter(k=>!!(session.deck[turn-1] && session.deck[turn-1][k]));
+  const answered = required.every(k => !!decs[k]);
+  p.answered = answered;
 }
-function ensurePlayer(s, playerId) {
-  const p = s.players.find(x => x.id === playerId);
-  if (!p) return null;
-  return p;
+
+function computeStatusLight(session, p){
+  const recent = p.lastActive && (now() - p.lastActive) < 15000;
+  const turn = (phaseForTurn(session.turnGlobal).host) ? session.turnGlobal : p.tourPerso;
+  const decs = (session.decisions.get(p.id) || new Map()).get(turn) || {};
+  const keys = ['evenement','proposition','contrainte','bonus'];
+  const count = keys.reduce((n,k)=> n + (decs[k] ? 1 : 0), 0);
+  if(count === 0) { p.statusLight = recent ? 'orange' : 'red'; return; }
+  if(count === keys.length) { p.statusLight = 'green'; return; }
+  p.statusLight = 'orange';
 }
-function logDecision(s, player, type, action, extra) {
-  s.logs.push({
-    ts: Date.now(),
-    playerId: player.id,
-    name: player.name,
-    turn: s.turn,
-    type,
+
+function logAction(session, p, turn, type, action, extra, edited=false){
+  session.logs.push({
+    ts: now(),
+    playerId: p.id,
+    name: p.name,
+    turn,
+    type: edited ? `${type} (EDIT)` : type,
     action,
     extra: extra || null,
-    wealth: player.patrimoine || 0,
-    rp: Number(player.rentenpunkte || 0),
-    salary: player.salaire || 0,
-    costOfLiving: player.coutDeVie || 0
+    wealth: p.patrimoine,
+    rp: p.rentenpunkte,
+    salary: p.salaire,
+    costOfLiving: p.costOfLiving
   });
-  // garder raisonnable (ex: dernier 500)
-  if (s.logs.length > 1000) s.logs.splice(0, s.logs.length - 1000);
+  if(session.logs.length > 2000) session.logs.shift();
 }
 
-// ---- Message handling ----
-function handleMessage(ws, m) {
-  switch (m.type) {
-    // --- Host side ---
-    case 'host:create': {
-      const code = randCode(4);
-      const s = ensureSession(code);
-      sockets.set(ws, { role: 'host', code });
-      ws.send(JSON.stringify({ type: 'host:created', code: s.code }));
-      pushState(s);
-      break;
+function applyDecisionEffects(p, type, payload){
+  // Extremely simplified evolution model
+  if(type==='proposition'){
+    const ai = Math.max(0, parseInt(payload?.extra?.amountInit||0,10));
+    const am = Math.max(0, parseInt(payload?.extra?.amountMonthly||0,10));
+    if(payload.choiceId==='ACCEPT'){
+      p.patrimoine -= ai;
+      p.costOfLiving += am;
+      p.rentenpunkte += 0.05; // small accumulation
     }
-    case 'host:resume': {
-      if (!m.code) return;
-      const s = ensureSession(m.code);
-      sockets.set(ws, { role: 'host', code: s.code });
-      pushState(s);
-      break;
-    }
-    case 'host:start': {
-      if (!m.code) return;
-      const s = ensureSession(m.code);
-      s.turn = 1;
-      s.phase = phaseFromTurn(s.turn);
-      s.paused = false;
-      s.active = makeCardsForTurn(s.turn);
-      setDeadline(s, 90); // timer indicatif par défaut
-      pushState(s);
-      break;
-    }
-    case 'host:next': {
-      if (!m.code) return;
-      const s = ensureSession(m.code);
-      // Pause stricte après tour 21
-      if (s.turn === 21) {
-        s.paused = true;
-        setDeadline(s, 0); // coupe le timer
-        pushState(s);
-        break;
-      }
-      // Avance tour normal
-      if (s.turn < TURN_MAX) {
-        s.turn++;
-        s.phase = phaseFromTurn(s.turn);
-        s.active = makeCardsForTurn(s.turn);
-        s.paused = false;
-        setDeadline(s, 90);
-        pushState(s);
-      }
-      break;
-    }
-    case 'host:continue': {
-      if (!m.code) return;
-      const s = ensureSession(m.code);
-      // Basculer en tour 22 (Phase C)
-      if (s.turn === 21 && s.paused) {
-        s.turn = 22;
-        s.phase = 'C';
-        s.paused = false;
-        s.active = makeCardsForTurn(s.turn);
-        setDeadline(s, 90);
-        pushState(s);
-      }
-      break;
-    }
-    case 'host:editDecision': {
-      const { code, playerId, turn, cardType, choiceId, label, extra } = m;
-      if (!code || !playerId || !turn || !cardType) return;
-      const s = ensureSession(code);
-      const p = ensurePlayer(s, playerId);
-      if (!p) return;
+  } else if(type==='evenement'){
+    // accept/refuse => small wealth fluctuation
+    if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine += 500; } else { p.patrimoine -= 200; }
+  } else if(type==='contrainte'){
+    if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine -= 300; p.costOfLiving += 30; }
+  } else if(type==='bonus'){
+    if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine += 300; p.salaire += 20; }
+  }
+  // keep numbers sane
+  p.patrimoine = Math.round(p.patrimoine);
+  p.salaire = Math.round(p.salaire);
+  p.costOfLiving = Math.round(p.costOfLiving);
+  p.rentenpunkte = Math.round((p.rentenpunkte + Number.EPSILON)*100)/100;
+}
 
-      s.decisions[playerId] = s.decisions[playerId] || {};
-      s.decisions[playerId][turn] = s.decisions[playerId][turn] || {};
-      s.decisions[playerId][turn][cardType] = {
-        choiceId: choiceId ?? s.decisions[playerId][turn][cardType]?.choiceId ?? null,
-        label: label ?? s.decisions[playerId][turn][cardType]?.label ?? null,
-        extra: (typeof extra === 'object' && extra !== null) ? extra : (safeParse(extra) ?? s.decisions[playerId][turn][cardType]?.extra ?? null)
-      };
-      // log d'édition
-      s.logs.push({
-        ts: Date.now(),
-        playerId: p.id,
-        name: p.name,
-        turn,
-        type: `${cardType} (EDIT)`,
-        action: choiceId ?? label ?? '—',
-        extra: (typeof extra === 'object' ? extra : safeParse(extra)) ?? null,
-        wealth: p.patrimoine || 0,
-        rp: Number(p.rentenpunkte || 0),
-        salary: p.salaire || 0,
-        costOfLiving: p.coutDeVie || 0
-      });
+/** ===== Sessions / Clients registries ===== */
+const SESSIONS = new Map(); // code -> session
+const CLIENTS = new Map();  // ws -> { role, code, playerId? }
 
-      pushState(s);
-      break;
-    }
+function findOrCreateSession(code){
+  if(!SESSIONS.has(code)) SESSIONS.set(code, defaultSession(code));
+  return SESSIONS.get(code);
+}
 
-    // --- Student side ---
-    case 'student:join': {
-      const code = (m.code || '').toUpperCase();
-      if (!code) return;
-      const s = ensureSession(code);
-      const id = crypto.randomUUID();
-      const name = (m.name || 'Étudiant').trim().slice(0, 40);
-      const player = {
-        id, name,
-        patrimoine: 0, rentenpunkte: 0,
-        salaire: 0, coutDeVie: 0,
-        answered: false,
-        statusLight: 'red',
-        lastActive: Date.now(),
-        tourPerso: s.turn || 1
-      };
-      s.players.push(player);
-      sockets.set(ws, { role: 'student', code, playerId: id });
-      ws.send(JSON.stringify({ type: 'student:joined', code, player: { id, name } }));
-      pushState(s);
-      break;
-    }
-    case 'student:resume': {
-      const code = (m.code || '').toUpperCase();
-      if (!code || !m.playerId) return;
-      const s = ensureSession(code);
-      const p = ensurePlayer(s, m.playerId);
-      if (!p) return;
-      sockets.set(ws, { role: 'student', code, playerId: p.id });
-      pushState(s);
-      break;
-    }
-    case 'student:ready': {
-      // peut être stocké si nécessaire
-      const code = (m.code || '').toUpperCase();
-      const s = ensureSession(code);
-      pushState(s);
-      break;
-    }
-    case 'student:decision': {
-      const { code, playerId, cardType, choiceId, label, extra } = m;
-      if (!code || !playerId || !cardType) return;
-      const s = ensureSession(code);
-      const p = ensurePlayer(s, playerId);
-      if (!p) return;
-
-      s.decisions[playerId] = s.decisions[playerId] || {};
-      s.decisions[playerId][s.turn] = s.decisions[playerId][s.turn] || {};
-      s.decisions[playerId][s.turn][cardType] = {
-        choiceId: choiceId ?? null,
-        label: label ?? null,
-        extra: (typeof extra === 'object' && extra !== null) ? extra : safeParse(extra)
-      };
-
-      // Journal central
-      const actionStr = choiceId ?? label ?? '—';
-      logDecision(s, p, cardType, actionStr, s.decisions[playerId][s.turn][cardType]?.extra);
-
-      pushState(s);
-      break;
-    }
-    case 'student:working': {
-      const { code, playerId, statusLight, tourPerso, lastActive } = m;
-      if (!code || !playerId) return;
-      const s = ensureSession(code);
-      const p = ensurePlayer(s, playerId);
-      if (!p) return;
-      const ph = s.phase || phaseFromTurn(s.turn || 1);
-      p.statusLight = ['red', 'orange', 'green'].includes(statusLight) ? statusLight : p.statusLight;
-      p.tourPerso = clampTourPerso(Number(tourPerso ?? p.tourPerso), ph);
-      p.lastActive = typeof lastActive === 'number' ? lastActive : Date.now();
-      pushState(s);
-      break;
-    }
+function attachClient(ws, role, code, playerId){
+  CLIENTS.set(ws, { role, code, playerId: playerId||null });
+  const sess = SESSIONS.get(code);
+  if(sess){
+    if(role==='host') sess.hostSockets.add(ws); else sess.clientSockets.add(ws);
   }
 }
 
-function safeParse(x) {
-  if (x == null) return null;
-  if (typeof x === 'object') return x;
-  try { return JSON.parse(String(x)); } catch (e) { return null; }
+function detachClient(ws){
+  const ctx = CLIENTS.get(ws);
+  if(!ctx) return;
+  const sess = SESSIONS.get(ctx.code);
+  if(sess){
+    sess.clientSockets.delete(ws);
+    sess.hostSockets.delete(ws);
+  }
+  CLIENTS.delete(ws);
 }
+
+/** ===== WS logic ===== */
+wss.on('connection', (ws)=>{
+  ws.on('message', (buf)=>{
+    let msg = null;
+    try { msg = JSON.parse(buf.toString()); } catch(e){ return; }
+    const t = msg.type;
+
+    // Host flows
+    if(t==='host:create'){
+      const code = codeId();
+      const s = defaultSession(code);
+      SESSIONS.set(code, s);
+      attachClient(ws, 'host', code);
+      ws.send(JSON.stringify({ type:'host:created', code }));
+      return;
+    }
+
+    if(t==='host:resume'){
+      const code = (msg.code||'').trim().toUpperCase();
+      if(!code || !SESSIONS.has(code)) return;
+      attachClient(ws, 'host', code);
+      const s = SESSIONS.get(code);
+      recalcPhase(s);
+      setDeadline(s, s.phase);
+      const ctx = CLIENTS.get(ws);
+      const snap = sessionViewFor(ctx, s);
+      ws.send(JSON.stringify({ type:'state', session: snap }));
+      return;
+    }
+
+    if(t==='host:start'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const s = findOrCreateSession(code);
+      attachClient(ws, 'host', code);
+      s.deck = generateDeck();
+      s.started = true;
+      s.turnGlobal = 1;
+      s.paused = false;
+      recalcPhase(s);
+      // align all players to start
+      s.players.forEach(p=>{ p.tourPerso = s.turnGlobal; });
+      setDeadline(s, s.phase);
+      broadcastState(s);
+      return;
+    }
+
+    if(t==='host:next'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const s = SESSIONS.get(code); if(!s) return;
+      const ph = phaseForTurn(s.turnGlobal);
+      if(!ph.host) return; // not allowed in auto-phase
+      if(s.turnGlobal < ph.end){
+        s.turnGlobal += 1;
+        s.paused = false;
+        // align all players to global in host phases
+        s.players.forEach(p=>{ p.tourPerso = s.turnGlobal; });
+        recalcPhase(s);
+        setDeadline(s, s.phase);
+        s.players.forEach(p=>{ computeAnsweredForPlayer(s,p); computeStatusLight(s,p); });
+        broadcastState(s);
+      } else {
+        // end of host sub-phase; if we just finished E it will do nothing
+        recalcPhase(s);
+        if(s.turnGlobal===21) s.paused = true;
+        setDeadline(s, s.phase);
+        broadcastState(s);
+      }
+      return;
+    }
+
+    if(t==='host:continue'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const s = SESSIONS.get(code); if(!s) return;
+      // specifically resume after pause at 21 -> move to 22
+      if(s.turnGlobal===21){
+        s.turnGlobal = 22;
+        s.paused = false;
+        // align all players to 22 (start of C)
+        s.players.forEach(p=>{ p.tourPerso = 22; });
+      }
+      recalcPhase(s);
+      setDeadline(s, s.phase);
+      s.players.forEach(p=>{ computeAnsweredForPlayer(s,p); computeStatusLight(s,p); });
+      broadcastState(s);
+      return;
+    }
+
+    if(t==='host:editDecision'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const s = SESSIONS.get(code); if(!s) return;
+      const { playerId, turn, cardType, choiceId, label, extra } = msg;
+      const p = s.players.get(playerId); if(!p) return;
+      const tnr = clamp(parseInt(turn||s.turnGlobal,10)||s.turnGlobal, 1, 42);
+      const perType = ensureDecisionsMap(s, p.id, tnr);
+      const prev = perType[cardType] || null;
+      perType[cardType] = { choiceId, label, extra: extra||null, edited:true };
+      applyDecisionEffects(p, cardType, perType[cardType]);
+      computeAnsweredForPlayer(s, p);
+      computeStatusLight(s, p);
+      logAction(s, p, tnr, cardType, label||choiceId||'EDIT', extra||null, true);
+      broadcastState(s);
+      return;
+    }
+
+    // Student flows
+    if(t==='student:join'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const name = (msg.name||'Étudiant').toString().slice(0,48);
+      if(!SESSIONS.has(code)) return; // ignore unknown session
+      const s = SESSIONS.get(code);
+      const p = makeBlankPlayer(name);
+      const ph = phaseForTurn(s.turnGlobal);
+      p.tourPerso = ph.host ? s.turnGlobal : s.turnGlobal; // can customize, keep simple
+      s.players.set(p.id, p);
+      attachClient(ws, 'student', code, p.id);
+      ws.send(JSON.stringify({ type:'student:joined', code, player: { id:p.id, name:p.name } }));
+      s.players.forEach(pl=>{ computeAnsweredForPlayer(s, pl); computeStatusLight(s, pl); });
+      broadcastState(s);
+      return;
+    }
+
+    if(t==='student:resume'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const pid = (msg.playerId||'').trim();
+      const s = SESSIONS.get(code); if(!s) return;
+      const p = s.players.get(pid); if(!p) return;
+      attachClient(ws, 'student', code, pid);
+      p.lastActive = now();
+      computeAnsweredForPlayer(s,p);
+      computeStatusLight(s,p);
+      const ctx = CLIENTS.get(ws);
+      const snap = sessionViewFor(ctx, s);
+      ws.send(JSON.stringify({ type:'state', session: snap }));
+      return;
+    }
+
+    if(t==='student:ready'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const pid = (msg.playerId||'').trim();
+      const s = SESSIONS.get(code); if(!s) return;
+      const p = s.players.get(pid); if(!p) return;
+      p.lastActive = now();
+      // purely indicative, computeAnswered handles the real status
+      computeAnsweredForPlayer(s,p);
+      computeStatusLight(s,p);
+      broadcastState(s);
+      return;
+    }
+
+    if(t==='student:working'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const pid = (msg.playerId||'').trim();
+      const s = SESSIONS.get(code); if(!s) return;
+      const p = s.players.get(pid); if(!p) return;
+      p.lastActive = now();
+      computeStatusLight(s,p);
+      // no broadcast spam, throttle: only echo to host if needed
+      return;
+    }
+
+    if(t==='student:decision'){
+      const code = (msg.code||'').trim().toUpperCase();
+      const pid = (msg.playerId||'').trim();
+      const s = SESSIONS.get(code); if(!s) return;
+      const p = s.players.get(pid); if(!p) return;
+      const ph = phaseForTurn(s.turnGlobal);
+      const type = msg.cardType;
+      const curTurn = ph.host ? s.turnGlobal : p.tourPerso;
+      const payload = {
+        choiceId: msg.choiceId,
+        label: msg.label,
+        extra: msg.extra || null
+      };
+      const perType = ensureDecisionsMap(s, p.id, curTurn);
+      perType[type] = payload;
+      applyDecisionEffects(p, type, payload);
+      computeAnsweredForPlayer(s, p);
+      computeStatusLight(s, p);
+      logAction(s, p, curTurn, type, payload.label||payload.choiceId||'', payload.extra||null, false);
+
+      // Auto-advance in auto-phase if all answered and not at phase end
+      if(!ph.host && p.answered){
+        const end = ph.end;
+        if(p.tourPerso < end){
+          p.tourPerso += 1;
+          // reset "answered" for next turn implicitly
+          computeAnsweredForPlayer(s, p);
+          computeStatusLight(s, p);
+        }
+      }
+
+      broadcastState(s);
+      return;
+    }
+  });
+
+  ws.on('close', ()=>{
+    detachClient(ws);
+  });
+});
+
+server.listen(PORT, ()=>{
+  console.log(`Finanz-Weg server running on http://localhost:${PORT}`);
+});
