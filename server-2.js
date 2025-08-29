@@ -2,6 +2,8 @@
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const fs = require('fs');
+const path = require('path');
 const { customAlphabet, nanoid } = require('nanoid');
 
 const PORT = process.env.PORT || 3000;
@@ -17,6 +19,15 @@ const now = () => Date.now();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const HOST_TURN_SEC = 3*60 + 45;   // 3:45
 const AUTO_TURN_SEC = 2*60 + 15;   // 2:15
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
 
 function phaseForTurn(t){
   if(t>=1 && t<=7)  return {id:'A', start:1, end:7, host:true};
@@ -45,12 +56,15 @@ function makeBlankPlayer(name){
     rentenpunkte: 0,
     statusLight: 'red',
     lastActive: null,
-    answered: false
+    answered: false,
+    profileId: null,
+    profileName: null,
+    profileTrait: null
   };
 }
 
 function cardFromTemplate(turn, type){
-  // Generic demo content, can be replaced by real content later
+  // Generic demo content – replace by actual content when ready
   const titles = {
     evenement: `Évènement de l'année ${turn}`,
     proposition: `Proposition d'investissement ${turn}`,
@@ -68,13 +82,11 @@ function cardFromTemplate(turn, type){
     type,
     titre: titles[type] || `Carte ${type} ${turn}`,
     texte: texts[type] || '',
-    imperative: (type==='contrainte' || type==='evenement') ? false : false,
     requiresInvestment: isInvest,
     resume: `Résumé ${type} — année ${turn}.`,
     impacts: `Impacts financiers potentiels à l'année ${turn}.`,
     exemples: `Exemples concrets liés à ${type} (année ${turn}).`,
     conseils: `Conseils pour gérer ${type} à l'année ${turn}.`,
-    // optional: choices for non-investment cards
     choices: !isInvest ? [
       { id:'A', label:'Accepter' },
       { id:'B', label:'Refuser' }
@@ -97,9 +109,41 @@ function generateDeck(){
   return deck;
 }
 
+/** ===== Profiles loading ===== */
+function loadProfiles(lang){
+  const safeLang = (lang||'fr').toLowerCase();
+  const candidates = [
+    path.join(__dirname, 'data', `profiles.${safeLang}.json`),
+    path.join(__dirname, 'data', 'profiles.fr.json')
+  ];
+  for(const p of candidates){
+    try{
+      if(fs.existsSync(p)){
+        const raw = fs.readFileSync(p, 'utf-8');
+        const arr = JSON.parse(raw);
+        if(Array.isArray(arr) && arr.length>0) return arr;
+      }
+    }catch(e){}
+  }
+  return [];
+}
+
+function applyProfileStart(p, profile){
+  // Apply starting situation (we keep numbers as "annual" for salary and costOfLiving)
+  const s = profile.start||{};
+  if(typeof s.salaryAnnualNet === 'number') p.salaire = Math.round(s.salaryAnnualNet);
+  if(typeof s.capitalStart === 'number') p.patrimoine = Math.round(s.capitalStart);
+  if(typeof s.costOfLivingAnnual === 'number') p.costOfLiving = Math.round(s.costOfLivingAnnual);
+  // household flag is informational for UI/business rules; keep via trait if needed
+  p.profileId = profile.id;
+  p.profileName = profile.name;
+  p.profileTrait = profile.trait ? { title: profile.trait.title, rules: profile.trait.rules||[] } : null;
+}
+
 function defaultSession(code){
   return {
     code,
+    lang: 'fr',
     started: false,
     paused: false,
     turnGlobal: 1,
@@ -109,13 +153,14 @@ function defaultSession(code){
     players: new Map(),       // playerId -> player
     decisions: new Map(),     // playerId -> Map(turn -> {type -> decision})
     logs: [],
-    clientSockets: new Set(), // set of ws for all connected to this session
-    hostSockets: new Set()    // set of host ws
+    clientSockets: new Set(), // students
+    hostSockets: new Set(),   // hosts
+    profiles: [],             // loaded list for this language
+    profilePool: []           // shuffled pool for random assignment
   };
 }
 
 function sessionViewFor(wsCtx, session){
-  // Build a per-client snapshot
   const isHost = wsCtx && wsCtx.role==='host';
   const phase = phaseForTurn(session.turnGlobal);
   const view = {
@@ -123,10 +168,10 @@ function sessionViewFor(wsCtx, session){
     phase: session.phase || phase.id,
     paused: !!session.paused,
     deadline: session.deadline,
-    logs: session.logs.slice(-2000) // keep reasonably sized
+    lang: session.lang,
+    logs: session.logs.slice(-2000)
   };
 
-  // Players list
   const playersArr = Array.from(session.players.values()).map(p=>{
     return {
       id: p.id,
@@ -138,12 +183,14 @@ function sessionViewFor(wsCtx, session){
       rentenpunkte: p.rentenpunkte,
       statusLight: p.statusLight,
       lastActive: p.lastActive,
-      answered: !!p.answered
+      answered: !!p.answered,
+      profileId: p.profileId,
+      profileName: p.profileName,
+      profileTrait: p.profileTrait ? { title: p.profileTrait.title } : null
     };
   });
   view.players = playersArr;
 
-  // Which turn to show?
   if(isHost || phase.host){
     view.turn = session.turnGlobal;
     const d = session.deck[session.turnGlobal-1] || null;
@@ -157,7 +204,6 @@ function sessionViewFor(wsCtx, session){
       };
     }
   } else {
-    // auto-phase for student: show their personal turn
     const me = wsCtx && session.players.get(wsCtx.playerId);
     const t = me ? me.tourPerso : session.turnGlobal;
     view.turn = t;
@@ -173,7 +219,6 @@ function sessionViewFor(wsCtx, session){
     }
   }
 
-  // Decisions structure for frontend (object-like)
   const decisions = {};
   session.decisions.forEach((byTurn, pid)=>{
     decisions[pid] = {};
@@ -212,7 +257,6 @@ function setDeadline(session, phaseId){
 function recalcPhase(session){
   const ph = phaseForTurn(session.turnGlobal);
   session.phase = ph.id;
-  // pause only once at end of B (turnGlobal==21)
   session.paused = (session.turnGlobal===21);
 }
 
@@ -260,24 +304,22 @@ function logAction(session, p, turn, type, action, extra, edited=false){
 }
 
 function applyDecisionEffects(p, type, payload){
-  // Extremely simplified evolution model
+  // Simplified evolution model; integrate traits later where needed
   if(type==='proposition'){
     const ai = Math.max(0, parseInt(payload?.extra?.amountInit||0,10));
     const am = Math.max(0, parseInt(payload?.extra?.amountMonthly||0,10));
     if(payload.choiceId==='ACCEPT'){
       p.patrimoine -= ai;
       p.costOfLiving += am;
-      p.rentenpunkte += 0.05; // small accumulation
+      p.rentenpunkte += 0.05;
     }
   } else if(type==='evenement'){
-    // accept/refuse => small wealth fluctuation
     if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine += 500; } else { p.patrimoine -= 200; }
   } else if(type==='contrainte'){
     if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine -= 300; p.costOfLiving += 30; }
   } else if(type==='bonus'){
     if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine += 300; p.salaire += 20; }
   }
-  // keep numbers sane
   p.patrimoine = Math.round(p.patrimoine);
   p.salaire = Math.round(p.salaire);
   p.costOfLiving = Math.round(p.costOfLiving);
@@ -344,16 +386,31 @@ wss.on('connection', (ws)=>{
 
     if(t==='host:start'){
       const code = (msg.code||'').trim().toUpperCase();
+      const lang = (msg.lang||'fr').toLowerCase();
       const s = findOrCreateSession(code);
       attachClient(ws, 'host', code);
+      s.lang = ['fr','en','de'].includes(lang) ? lang : 'fr';
+      // Load profiles for this language and prepare pool
+      s.profiles = loadProfiles(s.lang);
+      s.profilePool = shuffle(s.profiles);
+      // Deck
       s.deck = generateDeck();
       s.started = true;
       s.turnGlobal = 1;
       s.paused = false;
       recalcPhase(s);
-      // align all players to start
-      s.players.forEach(p=>{ p.tourPerso = s.turnGlobal; });
+      // align all players to start and assign profiles if not yet assigned
+      s.players.forEach(p=>{
+        p.tourPerso = s.turnGlobal;
+        if(!p.profileId){
+          // If pool empty but we still have players, reshuffle to allow more than N players
+          if(s.profilePool.length===0) s.profilePool = shuffle(s.profiles);
+          const pr = s.profilePool.shift();
+          if(pr) applyProfileStart(p, pr);
+        }
+      });
       setDeadline(s, s.phase);
+      s.players.forEach(p=>{ computeAnsweredForPlayer(s,p); computeStatusLight(s,p); });
       broadcastState(s);
       return;
     }
@@ -362,18 +419,16 @@ wss.on('connection', (ws)=>{
       const code = (msg.code||'').trim().toUpperCase();
       const s = SESSIONS.get(code); if(!s) return;
       const ph = phaseForTurn(s.turnGlobal);
-      if(!ph.host) return; // not allowed in auto-phase
+      if(!ph.host) return;
       if(s.turnGlobal < ph.end){
         s.turnGlobal += 1;
         s.paused = false;
-        // align all players to global in host phases
         s.players.forEach(p=>{ p.tourPerso = s.turnGlobal; });
         recalcPhase(s);
         setDeadline(s, s.phase);
         s.players.forEach(p=>{ computeAnsweredForPlayer(s,p); computeStatusLight(s,p); });
         broadcastState(s);
       } else {
-        // end of host sub-phase; if we just finished E it will do nothing
         recalcPhase(s);
         if(s.turnGlobal===21) s.paused = true;
         setDeadline(s, s.phase);
@@ -385,11 +440,9 @@ wss.on('connection', (ws)=>{
     if(t==='host:continue'){
       const code = (msg.code||'').trim().toUpperCase();
       const s = SESSIONS.get(code); if(!s) return;
-      // specifically resume after pause at 21 -> move to 22
       if(s.turnGlobal===21){
         s.turnGlobal = 22;
         s.paused = false;
-        // align all players to 22 (start of C)
         s.players.forEach(p=>{ p.tourPerso = 22; });
       }
       recalcPhase(s);
@@ -406,7 +459,6 @@ wss.on('connection', (ws)=>{
       const p = s.players.get(playerId); if(!p) return;
       const tnr = clamp(parseInt(turn||s.turnGlobal,10)||s.turnGlobal, 1, 42);
       const perType = ensureDecisionsMap(s, p.id, tnr);
-      const prev = perType[cardType] || null;
       perType[cardType] = { choiceId, label, extra: extra||null, edited:true };
       applyDecisionEffects(p, cardType, perType[cardType]);
       computeAnsweredForPlayer(s, p);
@@ -420,14 +472,20 @@ wss.on('connection', (ws)=>{
     if(t==='student:join'){
       const code = (msg.code||'').trim().toUpperCase();
       const name = (msg.name||'Étudiant').toString().slice(0,48);
-      if(!SESSIONS.has(code)) return; // ignore unknown session
+      if(!SESSIONS.has(code)) return;
       const s = SESSIONS.get(code);
       const p = makeBlankPlayer(name);
       const ph = phaseForTurn(s.turnGlobal);
-      p.tourPerso = ph.host ? s.turnGlobal : s.turnGlobal; // can customize, keep simple
+      p.tourPerso = s.turnGlobal;
+      // Assign a random profile on join if available
+      if(s.profiles && s.profiles.length){
+        if(s.profilePool.length===0) s.profilePool = shuffle(s.profiles);
+        const pr = s.profilePool.shift();
+        if(pr) applyProfileStart(p, pr);
+      }
       s.players.set(p.id, p);
       attachClient(ws, 'student', code, p.id);
-      ws.send(JSON.stringify({ type:'student:joined', code, player: { id:p.id, name:p.name } }));
+      ws.send(JSON.stringify({ type:'student:joined', code, player: { id:p.id, name:p.name, profileId: p.profileId, profileName: p.profileName } }));
       s.players.forEach(pl=>{ computeAnsweredForPlayer(s, pl); computeStatusLight(s, pl); });
       broadcastState(s);
       return;
@@ -454,7 +512,6 @@ wss.on('connection', (ws)=>{
       const s = SESSIONS.get(code); if(!s) return;
       const p = s.players.get(pid); if(!p) return;
       p.lastActive = now();
-      // purely indicative, computeAnswered handles the real status
       computeAnsweredForPlayer(s,p);
       computeStatusLight(s,p);
       broadcastState(s);
@@ -468,7 +525,6 @@ wss.on('connection', (ws)=>{
       const p = s.players.get(pid); if(!p) return;
       p.lastActive = now();
       computeStatusLight(s,p);
-      // no broadcast spam, throttle: only echo to host if needed
       return;
     }
 
@@ -492,12 +548,10 @@ wss.on('connection', (ws)=>{
       computeStatusLight(s, p);
       logAction(s, p, curTurn, type, payload.label||payload.choiceId||'', payload.extra||null, false);
 
-      // Auto-advance in auto-phase if all answered and not at phase end
       if(!ph.host && p.answered){
         const end = ph.end;
         if(p.tourPerso < end){
           p.tourPerso += 1;
-          // reset "answered" for next turn implicitly
           computeAnsweredForPlayer(s, p);
           computeStatusLight(s, p);
         }
