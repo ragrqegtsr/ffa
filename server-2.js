@@ -1,572 +1,454 @@
+// server-2.js — vNext
+// - Lecture optionnelle des cartes par langue: data/cards.<lang>.json
+// - Lecture optionnelle de la logique: data/deck_logic.v1.1.json (pour futur moteur)
+// - Profils multilingues: data/profiles.<lang>.json (déjà existant)
+// - Modes: long (42 tours, phases A–E) | blitz (10 tours, sans phases)
+// - Rétro-compat: si fichiers absents, fallback sur deck généré par gabarit
 
-const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
-const fs = require('fs');
 const path = require('path');
-const { customAlphabet, nanoid } = require('nanoid');
+const fs = require('fs');
+const express = require('express');
+const { WebSocketServer } = require('ws');
+const { nanoid } = require('nanoid');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
-app.use(express.static('public'));
 
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server, path: '/ws' });
+// ===== Static =====
+app.use(express.static(path.join(__dirname, 'public')));
 
-/** ===== Helpers ===== */
-const codeId = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 4);
-const now = () => Date.now();
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const HOST_TURN_SEC = 3*60 + 45;   // 3:45
-const AUTO_TURN_SEC = 2*60 + 15;   // 2:15
+// Basic health
+app.get('/health', (_req, res) => res.json({ ok: true }));
 
-function shuffle(arr){
-  const a = arr.slice();
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
+const server = app.listen(PORT, () => {
+  console.log(`HTTP listening on http://localhost:${PORT}`);
+});
+
+// ===== WebSocket =====
+const wss = new WebSocketServer({ noServer: true });
+server.on('upgrade', (req, socket, head) => {
+  if (req.url === '/ws') {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
+  } else {
+    socket.destroy();
   }
-  return a;
+});
+
+// ===== In-memory store =====
+const SESSIONS = new Map(); // code -> session
+const CLIENTS = new Map();  // ws -> { role, code, playerId }
+
+// ===== Utils =====
+const now = () => Date.now();
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]);
+
+function makeCode() {
+  // 5 chars alphanum uppercase
+  return nanoid(5).toUpperCase().replace(/[^A-Z0-9]/g, 'X');
 }
 
-function phaseForTurn(t){
-  if(t>=1 && t<=7)  return {id:'A', start:1, end:7, host:true};
-  if(t>=8 && t<=21) return {id:'B', start:8, end:21, host:false};
-  if(t>=22 && t<=26) return {id:'C', start:22, end:26, host:true};
-  if(t>=27 && t<=37) return {id:'D', start:27, end:37, host:false};
-  if(t>=38 && t<=42) return {id:'E', start:38, end:42, host:true};
-  return {id:'A', start:1, end:7, host:true};
+function recalcPhase(s) {
+  const t = s.turn || 1;
+  if (s.mode === 'blitz') { s.phase = '—'; return; }
+  if (t>=1 && t<=7) return s.phase='A';
+  if (t<=21) return s.phase='B';
+  if (t<=26) return s.phase='C';
+  if (t<=37) return s.phase='D';
+  s.phase='E';
 }
 
-function phaseWindowSec(phaseId){
-  if(phaseId==='B') return (21-8+1)*AUTO_TURN_SEC; // 14 tours
-  if(phaseId==='D') return (37-27+1)*AUTO_TURN_SEC; // 11 tours
-  return HOST_TURN_SEC;
+function timeboxSeconds(s, seconds) {
+  // crée une deadline en ms
+  const ms = clamp(seconds||90, 15, 600) * 1000;
+  s.deadline = now() + ms;
 }
 
-function makeBlankPlayer(name){
-  return {
-    id: nanoid(10),
-    name: name || 'Étudiant',
-    role: 'student',
-    tourPerso: 1,
-    patrimoine: 0,
-    salaire: 0,
-    costOfLiving: 0,
-    rentenpunkte: 0,
-    statusLight: 'red',
-    lastActive: null,
-    answered: false,
-    profileId: null,
-    profileName: null,
-    profileTrait: null
-  };
+// ===== Loading JSON (optionnels) =====
+function loadJSONCandidates(candidates) {
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, 'utf-8');
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.warn('JSON load error for', p, e.message);
+    }
+  }
+  return null;
 }
 
-function cardFromTemplate(turn, type){
-  // Generic demo content – replace by actual content when ready
-  const titles = {
-    evenement: `Évènement de l'année ${turn}`,
-    proposition: `Proposition d'investissement ${turn}`,
-    contrainte: `Contrainte financière ${turn}`,
-    bonus: `Bonus/opportunité ${turn}`
-  };
-  const texts = {
-    evenement: `Une situation particulière survient à l'année ${turn}.`,
-    proposition: `Option d'investir avec un montant de base et/ou mensuel.`,
-    contrainte: `Une dépense ou obligation surgit à l'année ${turn}.`,
-    bonus: `Un avantage potentiel est proposé cette année.`
-  };
-  const isInvest = (type==='proposition');
-  return {
+function loadProfiles(lang) {
+  const L = (lang||'fr').toLowerCase();
+  const data = loadJSONCandidates([
+    path.join(__dirname, 'data', `profiles.${L}.json`),
+    path.join(__dirname, 'data', 'profiles.fr.json')
+  ]);
+  if (Array.isArray(data)) return data;
+  // fallback minimal
+  return [{ id:'P00', key:'default', name:'Profil', start:{ salaryAnnualNet:30000, capitalStart:0, costOfLivingAnnual:15000, household:false }, bio:'Par défaut', trait:{ title:'—', rules:[] } }];
+}
+
+function loadCards(lang, mode) {
+  const L = (lang||'fr').toLowerCase();
+  const M = (mode||'long').toLowerCase();
+  // Option future: chercher d'abord cards.<mode>.<lang>.json
+  const data = loadJSONCandidates([
+    path.join(__dirname, 'data', `cards.${M}.${L}.json`),
+    path.join(__dirname, 'data', `cards.${L}.json`),
+    path.join(__dirname, 'data', 'cards.fr.json')
+  ]);
+  if (data && Array.isArray(data.cards)) return data.cards;
+  return null;
+}
+
+function loadDeckLogic() {
+  return loadJSONCandidates([
+    path.join(__dirname, 'data', 'deck_logic.v1.1.json'),
+    path.join(__dirname, 'data', 'deck_logic.json')
+  ]);
+}
+
+// ===== Deck generation =====
+function generateDeckTemplate(turns) {
+  // Fallback de démonstration si pas de fichier cards.*.json
+  const TYPES = ['evenement','proposition','contrainte','bonus'];
+  const mk = (type, t) => ({
+    id: `${type}_${t}`,
     type,
-    titre: titles[type] || `Carte ${type} ${turn}`,
-    texte: texts[type] || '',
-    requiresInvestment: isInvest,
-    resume: `Résumé ${type} — année ${turn}.`,
-    impacts: `Impacts financiers potentiels à l'année ${turn}.`,
-    exemples: `Exemples concrets liés à ${type} (année ${turn}).`,
-    conseils: `Conseils pour gérer ${type} à l'année ${turn}.`,
-    choices: !isInvest ? [
-      { id:'A', label:'Accepter' },
-      { id:'B', label:'Refuser' }
-    ] : undefined
-  };
-}
-
-function generateDeck(){
+    titre: `${type.toUpperCase()} — Tour ${t}`,
+    texte: `Carte ${type} générée par gabarit (tour ${t}).`
+  });
   const deck = [];
-  for(let t=1; t<=42; t++){
+  for (let t=1; t<=turns; t++) {
     deck.push({
-      turn: t,
-      age: 18 + (t-1),
-      evenement: cardFromTemplate(t, 'evenement'),
-      proposition: cardFromTemplate(t, 'proposition'),
-      contrainte: cardFromTemplate(t, 'contrainte'),
-      bonus: cardFromTemplate(t, 'bonus')
+      turn: t, age: 18 + (t-1),
+      evenement: mk('evenement', t),
+      proposition: mk('proposition', t),
+      contrainte: mk('contrainte', t),
+      bonus: mk('bonus', t)
     });
   }
   return deck;
 }
 
-/** ===== Profiles loading ===== */
-function loadProfiles(lang){
-  const safeLang = (lang||'fr').toLowerCase();
-  const candidates = [
-    path.join(__dirname, 'data', `profiles.${safeLang}.json`),
-    path.join(__dirname, 'data', 'profiles.fr.json')
-  ];
-  for(const p of candidates){
-    try{
-      if(fs.existsSync(p)){
-        const raw = fs.readFileSync(p, 'utf-8');
-        const arr = JSON.parse(raw);
-        if(Array.isArray(arr) && arr.length>0) return arr;
-      }
-    }catch(e){}
+function pickWeighted(arr) {
+  if (!arr || !arr.length) return null;
+  // Si une carte a weight, utiliser une roulette; sinon uniforme
+  const total = arr.reduce((s,c)=> s + (Number(c.weight)||1), 0);
+  if (!total || total===arr.length) {
+    return arr[Math.floor(Math.random()*arr.length)];
   }
-  return [];
+  let r = Math.random() * total;
+  for (const c of arr) {
+    r -= (Number(c.weight)||1);
+    if (r <= 0) return c;
+  }
+  return arr[arr.length-1];
 }
 
-function applyProfileStart(p, profile){
-  // Apply starting situation (we keep numbers as "annual" for salary and costOfLiving)
-  const s = profile.start||{};
-  if(typeof s.salaryAnnualNet === 'number') p.salaire = Math.round(s.salaryAnnualNet);
-  if(typeof s.capitalStart === 'number') p.patrimoine = Math.round(s.capitalStart);
-  if(typeof s.costOfLivingAnnual === 'number') p.costOfLiving = Math.round(s.costOfLivingAnnual);
-  // household flag is informational for UI/business rules; keep via trait if needed
-  p.profileId = profile.id;
-  p.profileName = profile.name;
-  p.profileTrait = profile.trait ? { title: profile.trait.title, rules: profile.trait.rules||[] } : null;
+function generateDeckFromCards(cards, mode) {
+  const TYPES = ['evenement','proposition','contrainte','bonus'];
+  const turns = (mode === 'blitz') ? 10 : 42;
+  const byType = new Map();
+  TYPES.forEach(t => byType.set(t, cards.filter(c => c.type === t)));
+  const deck = [];
+  for (let t=1; t<=turns; t++) {
+    deck.push({
+      turn: t,
+      age: 18 + (t-1),
+      evenement: pickWeighted(byType.get('evenement')),
+      proposition: pickWeighted(byType.get('proposition')),
+      contrainte: pickWeighted(byType.get('contrainte')),
+      bonus: pickWeighted(byType.get('bonus')),
+    });
+  }
+  return deck;
 }
 
-function defaultSession(code){
+// ===== Session model =====
+function createEmptySession(code) {
   return {
     code,
     lang: 'fr',
+    mode: 'long',
+    createdAt: now(),
     started: false,
     paused: false,
-    turnGlobal: 1,
+    turn: 1,
+    age: 18,
     phase: 'A',
     deadline: null,
-    deck: [],
-    players: new Map(),       // playerId -> player
-    decisions: new Map(),     // playerId -> Map(turn -> {type -> decision})
-    logs: [],
-    clientSockets: new Set(), // students
-    hostSockets: new Set(),   // hosts
-    profiles: [],             // loaded list for this language
-    profilePool: []           // shuffled pool for random assignment
+    deck: [],            // [{ turn, age, evenement, proposition, contrainte, bonus }]
+    active: null,        // cartes en cours pour le tour
+    players: [],         // { id, name, patrimoine, salaire, coutDeVie, rentenpunkte, marqueurs[], lastActive, answered, tourPerso, statusLight }
+    decisions: {},       // decisions[playerId][turn] = { evenement:{...}, ... }
+    logs: [],            // { ts, turn, name, type, action, wealth, rp, salary, costOfLiving, extra }
+    profiles: [],
+    profilePool: [],
+    logic: null          // deck_logic.v1.1.json (optionnel, pour effets)
   };
 }
 
-function sessionViewFor(wsCtx, session){
-  const isHost = wsCtx && wsCtx.role==='host';
-  const phase = phaseForTurn(session.turnGlobal);
-  const view = {
-    code: session.code,
-    phase: session.phase || phase.id,
-    paused: !!session.paused,
-    deadline: session.deadline,
-    lang: session.lang,
-    logs: session.logs.slice(-2000)
+function broadcastState(s) {
+  const payload = JSON.stringify({ type:'state', session: s });
+  wss.clients.forEach(ws => {
+    const link = CLIENTS.get(ws);
+    if (link && link.code === s.code && ws.readyState === ws.OPEN) {
+      ws.send(payload);
+    }
+  });
+}
+
+function sessionFrom(ws) {
+  const link = CLIENTS.get(ws);
+  if (!link) return null;
+  return SESSIONS.get(link.code) || null;
+}
+
+function attachClient(ws, role, code, playerId=null) {
+  CLIENTS.set(ws, { role, code, playerId });
+}
+
+function findPlayer(s, playerId) {
+  return (s.players||[]).find(p => p.id === playerId) || null;
+}
+
+function ensureDecisions(s, playerId, turn) {
+  if (!s.decisions[playerId]) s.decisions[playerId] = {};
+  if (!s.decisions[playerId][turn]) s.decisions[playerId][turn] = {};
+  return s.decisions[playerId][turn];
+}
+
+function setStatusLight(p) {
+  // simple feu selon réponses
+  p.statusLight = p.answered ? 'green' : 'orange';
+}
+
+function computeActiveForTurn(s) {
+  const d = s.deck.find(x => x.turn === s.turn);
+  if (!d) return s.active = null;
+  // Normaliser structure attendue par l'UI (host/student)
+  const norm = (c) => !c ? null : ({
+    id: c.id || null,
+    type: c.type || 'evenement',
+    titre: c.titre || c.title || '—',
+    texte: c.texte || c.summary || c.advice || '',
+    // flags possibles si présents dans ton JSON cartes
+    imperative: !!c.imperative,
+    requiresInvestment: !!c.requiresInvestment,
+    choices: c.choices || null
+  });
+  s.active = {
+    evenement:  norm(d.evenement),
+    proposition: norm(d.proposition),
+    contrainte:  norm(d.contrainte),
+    bonus:       norm(d.bonus)
   };
+}
 
-  const playersArr = Array.from(session.players.values()).map(p=>{
-    return {
-      id: p.id,
-      name: p.name,
-      tourPerso: p.tourPerso,
-      patrimoine: p.patrimoine,
-      salaire: p.salaire,
-      costOfLiving: p.costOfLiving,
-      rentenpunkte: p.rentenpunkte,
-      statusLight: p.statusLight,
-      lastActive: p.lastActive,
-      answered: !!p.answered,
-      profileId: p.profileId,
-      profileName: p.profileName,
-      profileTrait: p.profileTrait ? { title: p.profileTrait.title } : null
-    };
-  });
-  view.players = playersArr;
+function nextTurn(s) {
+  s.turn = clamp((s.turn||1)+1, 1, (s.mode==='blitz'?10:42));
+  s.age = 18 + (s.turn - 1);
+  recalcPhase(s);
+  computeActiveForTurn(s);
+  // reset état tour
+  (s.players||[]).forEach(p => { p.answered = false; setStatusLight(p); p.tourPerso = s.turn; });
+  timeboxSeconds(s, 90);
+}
 
-  if(isHost || phase.host){
-    view.turn = session.turnGlobal;
-    const d = session.deck[session.turnGlobal-1] || null;
-    if(d){
-      view.age = d.age;
-      view.active = {
-        evenement: d.evenement,
-        proposition: d.proposition,
-        contrainte: d.contrainte,
-        bonus: d.bonus
-      };
+function startGame(s) {
+  s.started = true;
+  s.turn = 1;
+  s.age = 18;
+  recalcPhase(s);
+  computeActiveForTurn(s);
+  (s.players||[]).forEach(p => { p.answered = false; setStatusLight(p); p.tourPerso = s.turn; });
+  timeboxSeconds(s, 90);
+}
+
+function assignProfiles(s) {
+  // distribution simple: piocher séquentiellement dans profilePool
+  s.players.forEach(p => {
+    if (!p.profile && s.profilePool.length) {
+      p.profile = s.profilePool.shift();
+      // init stats basiques depuis profil
+      const st = p.profile.start || {};
+      p.patrimoine   = Number(st.capitalStart||0);
+      p.salaire      = Number(st.salaryAnnualNet||0);
+      p.coutDeVie    = Number(st.costOfLivingAnnual||0);
+      p.rentenpunkte = 0;
+      p.marqueurs    = [];
     }
-  } else {
-    const me = wsCtx && session.players.get(wsCtx.playerId);
-    const t = me ? me.tourPerso : session.turnGlobal;
-    view.turn = t;
-    const d = session.deck[t-1] || null;
-    if(d){
-      view.age = d.age;
-      view.active = {
-        evenement: d.evenement,
-        proposition: d.proposition,
-        contrainte: d.contrainte,
-        bonus: d.bonus
-      };
-    }
-  }
-
-  const decisions = {};
-  session.decisions.forEach((byTurn, pid)=>{
-    decisions[pid] = {};
-    byTurn.forEach((perType, turn)=>{
-      decisions[pid][turn] = Object.assign({}, perType);
-    });
-  });
-  view.decisions = decisions;
-
-  return view;
-}
-
-function broadcastState(session){
-  session.clientSockets.forEach(ws=>{
-    try{
-      const ctx = CLIENTS.get(ws);
-      const snap = sessionViewFor(ctx, session);
-      ws.send(JSON.stringify({ type:'state', session: snap }));
-    }catch(e){}
-  });
-  session.hostSockets.forEach(ws=>{
-    try{
-      const ctx = CLIENTS.get(ws);
-      const snap = sessionViewFor(ctx, session);
-      ws.send(JSON.stringify({ type:'state', session: snap }));
-    }catch(e){}
   });
 }
 
-function setDeadline(session, phaseId){
-  const ph = phaseId || session.phase || phaseForTurn(session.turnGlobal).id;
-  const sec = (ph==='A' || ph==='C' || ph==='E') ? HOST_TURN_SEC : phaseWindowSec(ph);
-  session.deadline = now() + sec*1000;
-}
-
-function recalcPhase(session){
-  const ph = phaseForTurn(session.turnGlobal);
-  session.phase = ph.id;
-  session.paused = (session.turnGlobal===21);
-}
-
-function ensureDecisionsMap(session, playerId, turn){
-  if(!session.decisions.has(playerId)) session.decisions.set(playerId, new Map());
-  const byTurn = session.decisions.get(playerId);
-  if(!byTurn.has(turn)) byTurn.set(turn, {});
-  return byTurn.get(turn);
-}
-
-function computeAnsweredForPlayer(session, p){
-  const turn = (phaseForTurn(session.turnGlobal).host) ? session.turnGlobal : p.tourPerso;
-  const decs = (session.decisions.get(p.id) || new Map()).get(turn) || {};
-  const required = ['evenement','proposition','contrainte','bonus'].filter(k=>!!(session.deck[turn-1] && session.deck[turn-1][k]));
-  const answered = required.every(k => !!decs[k]);
-  p.answered = answered;
-}
-
-function computeStatusLight(session, p){
-  const recent = p.lastActive && (now() - p.lastActive) < 15000;
-  const turn = (phaseForTurn(session.turnGlobal).host) ? session.turnGlobal : p.tourPerso;
-  const decs = (session.decisions.get(p.id) || new Map()).get(turn) || {};
-  const keys = ['evenement','proposition','contrainte','bonus'];
-  const count = keys.reduce((n,k)=> n + (decs[k] ? 1 : 0), 0);
-  if(count === 0) { p.statusLight = recent ? 'orange' : 'red'; return; }
-  if(count === keys.length) { p.statusLight = 'green'; return; }
-  p.statusLight = 'orange';
-}
-
-function logAction(session, p, turn, type, action, extra, edited=false){
-  session.logs.push({
+function logServer(s, p, type, action, extra={}) {
+  s.logs.push({
     ts: now(),
-    playerId: p.id,
-    name: p.name,
-    turn,
-    type: edited ? `${type} (EDIT)` : type,
-    action,
-    extra: extra || null,
-    wealth: p.patrimoine,
-    rp: p.rentenpunkte,
-    salary: p.salaire,
-    costOfLiving: p.costOfLiving
+    turn: s.turn,
+    name: p ? p.name : '—',
+    type, action,
+    wealth: p ? p.patrimoine : 0,
+    rp: p ? p.rentenpunkte : 0,
+    salary: p ? p.salaire : 0,
+    costOfLiving: p ? p.coutDeVie : 0,
+    extra
   });
-  if(session.logs.length > 2000) session.logs.shift();
+  // limite mémoire
+  if (s.logs.length > 5000) s.logs = s.logs.slice(-3000);
 }
 
-function applyDecisionEffects(p, type, payload){
-  // Simplified evolution model; integrate traits later where needed
-  if(type==='proposition'){
-    const ai = Math.max(0, parseInt(payload?.extra?.amountInit||0,10));
-    const am = Math.max(0, parseInt(payload?.extra?.amountMonthly||0,10));
-    if(payload.choiceId==='ACCEPT'){
-      p.patrimoine -= ai;
-      p.costOfLiving += am;
-      p.rentenpunkte += 0.05;
-    }
-  } else if(type==='evenement'){
-    if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine += 500; } else { p.patrimoine -= 200; }
-  } else if(type==='contrainte'){
-    if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine -= 300; p.costOfLiving += 30; }
-  } else if(type==='bonus'){
-    if(payload.choiceId==='A' || payload.label==='Accepter'){ p.patrimoine += 300; p.salaire += 20; }
-  }
-  p.patrimoine = Math.round(p.patrimoine);
-  p.salaire = Math.round(p.salaire);
-  p.costOfLiving = Math.round(p.costOfLiving);
-  p.rentenpunkte = Math.round((p.rentenpunkte + Number.EPSILON)*100)/100;
-}
+// ===== WS message handling =====
+wss.on('connection', (ws) => {
+  ws.on('message', (buf) => {
+    let msg = {};
+    try { msg = JSON.parse(buf.toString()); } catch(e) { return; }
 
-/** ===== Sessions / Clients registries ===== */
-const SESSIONS = new Map(); // code -> session
-const CLIENTS = new Map();  // ws -> { role, code, playerId? }
+    switch (msg.type) {
+      case 'host:create': {
+        const code = makeCode();
+        const s = createEmptySession(code);
+        s.lang = ['fr','en','de'].includes((msg.lang||'fr').toLowerCase()) ? (msg.lang||'fr').toLowerCase() : 'fr';
+        s.mode = (msg.mode==='blitz') ? 'blitz' : 'long';
 
-function findOrCreateSession(code){
-  if(!SESSIONS.has(code)) SESSIONS.set(code, defaultSession(code));
-  return SESSIONS.get(code);
-}
+        // Profils
+        s.profiles = loadProfiles(s.lang);
+        s.profilePool = shuffle(s.profiles.slice());
 
-function attachClient(ws, role, code, playerId){
-  CLIENTS.set(ws, { role, code, playerId: playerId||null });
-  const sess = SESSIONS.get(code);
-  if(sess){
-    if(role==='host') sess.hostSockets.add(ws); else sess.clientSockets.add(ws);
-  }
-}
+        // Cartes externes
+        const cards = loadCards(s.lang, s.mode);
+        s.logic = loadDeckLogic(); // optionnel (futur moteur d'effets)
+        if (cards && cards.length) s.deck = generateDeckFromCards(cards, s.mode);
+        else s.deck = generateDeckTemplate(s.mode==='blitz'?10:42);
 
-function detachClient(ws){
-  const ctx = CLIENTS.get(ws);
-  if(!ctx) return;
-  const sess = SESSIONS.get(ctx.code);
-  if(sess){
-    sess.clientSockets.delete(ws);
-    sess.hostSockets.delete(ws);
-  }
-  CLIENTS.delete(ws);
-}
-
-/** ===== WS logic ===== */
-wss.on('connection', (ws)=>{
-  ws.on('message', (buf)=>{
-    let msg = null;
-    try { msg = JSON.parse(buf.toString()); } catch(e){ return; }
-    const t = msg.type;
-
-    // Host flows
-    if(t==='host:create'){
-      const code = codeId();
-      const s = defaultSession(code);
-      SESSIONS.set(code, s);
-      attachClient(ws, 'host', code);
-      ws.send(JSON.stringify({ type:'host:created', code }));
-      return;
-    }
-
-    if(t==='host:resume'){
-      const code = (msg.code||'').trim().toUpperCase();
-      if(!code || !SESSIONS.has(code)) return;
-      attachClient(ws, 'host', code);
-      const s = SESSIONS.get(code);
-      recalcPhase(s);
-      setDeadline(s, s.phase);
-      const ctx = CLIENTS.get(ws);
-      const snap = sessionViewFor(ctx, s);
-      ws.send(JSON.stringify({ type:'state', session: snap }));
-      return;
-    }
-
-    if(t==='host:start'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const lang = (msg.lang||'fr').toLowerCase();
-      const s = findOrCreateSession(code);
-      attachClient(ws, 'host', code);
-      s.lang = ['fr','en','de'].includes(lang) ? lang : 'fr';
-      // Load profiles for this language and prepare pool
-      s.profiles = loadProfiles(s.lang);
-      s.profilePool = shuffle(s.profiles);
-      // Deck
-      s.deck = generateDeck();
-      s.started = true;
-      s.turnGlobal = 1;
-      s.paused = false;
-      recalcPhase(s);
-      // align all players to start and assign profiles if not yet assigned
-      s.players.forEach(p=>{
-        p.tourPerso = s.turnGlobal;
-        if(!p.profileId){
-          // If pool empty but we still have players, reshuffle to allow more than N players
-          if(s.profilePool.length===0) s.profilePool = shuffle(s.profiles);
-          const pr = s.profilePool.shift();
-          if(pr) applyProfileStart(p, pr);
-        }
-      });
-      setDeadline(s, s.phase);
-      s.players.forEach(p=>{ computeAnsweredForPlayer(s,p); computeStatusLight(s,p); });
-      broadcastState(s);
-      return;
-    }
-
-    if(t==='host:next'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const s = SESSIONS.get(code); if(!s) return;
-      const ph = phaseForTurn(s.turnGlobal);
-      if(!ph.host) return;
-      if(s.turnGlobal < ph.end){
-        s.turnGlobal += 1;
-        s.paused = false;
-        s.players.forEach(p=>{ p.tourPerso = s.turnGlobal; });
-        recalcPhase(s);
-        setDeadline(s, s.phase);
-        s.players.forEach(p=>{ computeAnsweredForPlayer(s,p); computeStatusLight(s,p); });
+        computeActiveForTurn(s);
+        SESSIONS.set(code, s);
+        attachClient(ws, 'host', code);
+        ws.send(JSON.stringify({ type:'host:created', code }));
         broadcastState(s);
-      } else {
-        recalcPhase(s);
-        if(s.turnGlobal===21) s.paused = true;
-        setDeadline(s, s.phase);
+        break;
+      }
+
+      case 'host:resume': {
+        const code = (msg.code||'').toUpperCase();
+        const s = SESSIONS.get(code);
+        if (!s) return;
+        attachClient(ws, 'host', code);
+        ws.send(JSON.stringify({ type:'host:created', code }));
         broadcastState(s);
+        break;
       }
-      return;
-    }
 
-    if(t==='host:continue'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const s = SESSIONS.get(code); if(!s) return;
-      if(s.turnGlobal===21){
-        s.turnGlobal = 22;
+      case 'host:start': {
+        const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
+        if (!s) return;
+        assignProfiles(s);
+        startGame(s);
+        broadcastState(s);
+        break;
+      }
+
+      case 'host:next': {
+        const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
+        if (!s) return;
+        nextTurn(s);
+        broadcastState(s);
+        break;
+      }
+
+      case 'host:continue': {
+        const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
+        if (!s) return;
         s.paused = false;
-        s.players.forEach(p=>{ p.tourPerso = 22; });
-      }
-      recalcPhase(s);
-      setDeadline(s, s.phase);
-      s.players.forEach(p=>{ computeAnsweredForPlayer(s,p); computeStatusLight(s,p); });
-      broadcastState(s);
-      return;
-    }
-
-    if(t==='host:editDecision'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const s = SESSIONS.get(code); if(!s) return;
-      const { playerId, turn, cardType, choiceId, label, extra } = msg;
-      const p = s.players.get(playerId); if(!p) return;
-      const tnr = clamp(parseInt(turn||s.turnGlobal,10)||s.turnGlobal, 1, 42);
-      const perType = ensureDecisionsMap(s, p.id, tnr);
-      perType[cardType] = { choiceId, label, extra: extra||null, edited:true };
-      applyDecisionEffects(p, cardType, perType[cardType]);
-      computeAnsweredForPlayer(s, p);
-      computeStatusLight(s, p);
-      logAction(s, p, tnr, cardType, label||choiceId||'EDIT', extra||null, true);
-      broadcastState(s);
-      return;
-    }
-
-    // Student flows
-    if(t==='student:join'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const name = (msg.name||'Étudiant').toString().slice(0,48);
-      if(!SESSIONS.has(code)) return;
-      const s = SESSIONS.get(code);
-      const p = makeBlankPlayer(name);
-      const ph = phaseForTurn(s.turnGlobal);
-      p.tourPerso = s.turnGlobal;
-      // Assign a random profile on join if available
-      if(s.profiles && s.profiles.length){
-        if(s.profilePool.length===0) s.profilePool = shuffle(s.profiles);
-        const pr = s.profilePool.shift();
-        if(pr) applyProfileStart(p, pr);
-      }
-      s.players.set(p.id, p);
-      attachClient(ws, 'student', code, p.id);
-      ws.send(JSON.stringify({ type:'student:joined', code, player: { id:p.id, name:p.name, profileId: p.profileId, profileName: p.profileName } }));
-      s.players.forEach(pl=>{ computeAnsweredForPlayer(s, pl); computeStatusLight(s, pl); });
-      broadcastState(s);
-      return;
-    }
-
-    if(t==='student:resume'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const pid = (msg.playerId||'').trim();
-      const s = SESSIONS.get(code); if(!s) return;
-      const p = s.players.get(pid); if(!p) return;
-      attachClient(ws, 'student', code, pid);
-      p.lastActive = now();
-      computeAnsweredForPlayer(s,p);
-      computeStatusLight(s,p);
-      const ctx = CLIENTS.get(ws);
-      const snap = sessionViewFor(ctx, s);
-      ws.send(JSON.stringify({ type:'state', session: snap }));
-      return;
-    }
-
-    if(t==='student:ready'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const pid = (msg.playerId||'').trim();
-      const s = SESSIONS.get(code); if(!s) return;
-      const p = s.players.get(pid); if(!p) return;
-      p.lastActive = now();
-      computeAnsweredForPlayer(s,p);
-      computeStatusLight(s,p);
-      broadcastState(s);
-      return;
-    }
-
-    if(t==='student:working'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const pid = (msg.playerId||'').trim();
-      const s = SESSIONS.get(code); if(!s) return;
-      const p = s.players.get(pid); if(!p) return;
-      p.lastActive = now();
-      computeStatusLight(s,p);
-      return;
-    }
-
-    if(t==='student:decision'){
-      const code = (msg.code||'').trim().toUpperCase();
-      const pid = (msg.playerId||'').trim();
-      const s = SESSIONS.get(code); if(!s) return;
-      const p = s.players.get(pid); if(!p) return;
-      const ph = phaseForTurn(s.turnGlobal);
-      const type = msg.cardType;
-      const curTurn = ph.host ? s.turnGlobal : p.tourPerso;
-      const payload = {
-        choiceId: msg.choiceId,
-        label: msg.label,
-        extra: msg.extra || null
-      };
-      const perType = ensureDecisionsMap(s, p.id, curTurn);
-      perType[type] = payload;
-      applyDecisionEffects(p, type, payload);
-      computeAnsweredForPlayer(s, p);
-      computeStatusLight(s, p);
-      logAction(s, p, curTurn, type, payload.label||payload.choiceId||'', payload.extra||null, false);
-
-      if(!ph.host && p.answered){
-        const end = ph.end;
-        if(p.tourPerso < end){
-          p.tourPerso += 1;
-          computeAnsweredForPlayer(s, p);
-          computeStatusLight(s, p);
-        }
+        timeboxSeconds(s, 90);
+        broadcastState(s);
+        break;
       }
 
-      broadcastState(s);
-      return;
+      case 'student:join': {
+        const code = (msg.code||'').toUpperCase();
+        const s = SESSIONS.get(code);
+        if (!s) return;
+        const name = (msg.name||'Étudiant').slice(0, 24);
+        const player = {
+          id: nanoid(8),
+          name,
+          patrimoine: 0,
+          salaire: 0,
+          coutDeVie: 0,
+          rentenpunkte: 0,
+          marqueurs: [],
+          lastActive: now(),
+          answered: false,
+          tourPerso: s.turn,
+          statusLight: 'orange',
+        };
+        s.players.push(player);
+        attachClient(ws, 'student', code, player.id);
+        ws.send(JSON.stringify({ type:'student:joined', code, player }));
+        broadcastState(s);
+        break;
+      }
+
+      case 'student:resume': {
+        const code = (msg.code||'').toUpperCase();
+        const s = SESSIONS.get(code);
+        if (!s) return;
+        const p = findPlayer(s, msg.playerId);
+        if (!p) return;
+        attachClient(ws, 'student', code, p.id);
+        ws.send(JSON.stringify({ type:'student:joined', code, player: p }));
+        broadcastState(s);
+        break;
+      }
+
+      case 'student:ready': {
+        const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
+        if (!s) return;
+        const p = findPlayer(s, msg.playerId);
+        if (!p) return;
+        p.lastActive = now();
+        // petit flag visuel côté host (compte comme activité)
+        setStatusLight(p);
+        broadcastState(s);
+        break;
+      }
+
+      case 'student:decision': {
+        const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
+        if (!s) return;
+        const p = findPlayer(s, msg.playerId);
+        if (!p) return;
+        p.lastActive = now();
+        const turn = s.turn;
+        const decs = ensureDecisions(s, p.id, turn);
+        const t = (msg.cardType||'').toLowerCase();
+        decs[t] = { choiceId: msg.choiceId||'CHOICE', extra: msg.extra||null };
+
+        // Heuristique simple: si répondu aux 4 types, mark answered
+        const TYPES = ['evenement','proposition','contrainte','bonus'];
+        p.answered = TYPES.every(k => decs[k]);
+        setStatusLight(p);
+
+        logServer(s, p, 'decision', `${t}:${msg.choiceId||'—'}`, { extra: msg.extra||null });
+        broadcastState(s);
+        break;
+      }
+
+      default: {
+        // heartbeat / unknown
+        break;
+      }
     }
   });
 
-  ws.on('close', ()=>{
-    detachClient(ws);
+  ws.on('close', () => {
+    CLIENTS.delete(ws);
   });
 });
 
-server.listen(PORT, ()=>{
-  console.log(`Finanz-Weg server running on http://localhost:${PORT}`);
-});
+console.log('WebSocket listening at /ws');
