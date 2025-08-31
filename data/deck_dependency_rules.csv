@@ -1,0 +1,47 @@
+Subsystem,Upstream_Card,Upstream_Marker_Granted,Downstream_Card,Condition (when downstream appears),Effect_if_TRUE,Effect_if_FALSE,Profile_Modifiers
+Auto,Assurance Voiture (KFZ),KFZ_Tiers,Accident de voiture responsable,Possède KFZ_Tiers,-1 500 € (franchise),-7 000 € si aucune assurance,Expatrié: -2 000 € au lieu de -1 500 € (paperasse)
+Auto,Assurance Voiture (KFZ),KFZ_Tous_Risques,Accident de voiture responsable,Possède KFZ_Tous_Risques,0 € (couvert),-7 000 € si aucune assurance,Couple DINK: 0 € mais Coût de la vie +200 €/an (confort accru)
+Auto,Assurance Voiture (KFZ),None,Accident de voiture responsable,Aucune assurance,-7 000 €,,Artiste Indépendant: -9 000 €
+Auto,Assurance Voiture (KFZ),KFZ_Tiers|KFZ_Tous_Risques,Votre voiture ne passe pas le TÜV,Assuré (KFZ_Tiers ou Tous_Risques),-800 € (prise en charge partielle),-1 500 € (réparations obligatoires),Ouvrier Qualifié: +1 000 € de perte supplémentaire si non assuré (dépendance voiture)
+Auto,Assurance Voiture (KFZ),KFZ_Tiers|KFZ_Tous_Risques,Réparation majeure sur la voiture,Assuré Tous Risques,-0 à -500 € (selon franchise),-3 000 € (sans tous risques),
+Auto,Assurance voyage annuelle,Voyage_Assuré,Perte de bagages,Possède Voyage_Assuré,0 € (remboursé),-700 € (achats urgents),
+Auto,Assurance voyage annuelle,Voyage_Assuré,Frais médicaux à l'étranger,Possède Voyage_Assuré,0 à -200 € (franchise),-1 000 €,
+Habitation,Assurance Habitation (Hausrat),Hausrat_Assuré,Cambriolage,Possède Hausrat_Assuré,-1 000 € de perte (franchise),-8 000 € de perte,
+Juridique,Protection Juridique (Rechtsschutz),Rechtsschutz_Assuré,Perte d'un procès,Possède Rechtsschutz_Assuré,-5 000 € (honoraires part couverts),-15 000 €,"Expatrié: -6 000 € (traductions, experts)"
+Juridique,Protection Juridique (Rechtsschutz),Rechtsschutz_Assuré,Litige avec un artisan,Possède Rechtsschutz_Assuré,-500 € (reste à charge),-2 000 € (frais avocat),
+Juridique,Protection Juridique (Rechtsschutz),Rechtsschutz_Assuré,Caution non restituée,Possède Rechtsschutz_Assuré,-0 € (propriétaire condamné à rembourser),-1 500 € (perte),
+Santé,Assurance Incapacité (BU),BU_Standard,Burn-out,Possède BU_Standard,Perte de salaire limitée à -10% pendant le tour,Perte de salaire -30% (congé 6 mois),Médecin Résident: -15% au lieu de -10% (franchise plus haute)
+Santé,Assurance Incapacité (BU) - Premium,BU_Premium,Burn-out,Possède BU_Premium,0 % de perte (couverture totale),Perte de salaire -30%,
+Santé,Complémentaire Dentaire (Zahnzusatz),Dentaire_Assuré,Rage de dents,Possède Dentaire_Assuré,-200 € (reste à charge),-1 200 €,
+Santé,Complémentaire Hospitalisation,Hosp_Assuré,Blessure mineure,Possède Hosp_Assuré,-0 à -100 €,-300 €,
+Retraite,Ouvrir un plan Riester-Rente,Riester_Ouvert,Optimisation fiscale réussie,Possède Riester_Ouvert,+3 000 € (optimisation) + Zulage,"+3 000 € uniquement (si pas de Riester, pas de Zulage)",Jeune Famille: +50% sur les aides liées au Riester (profil)
+Retraite,Augmenter vos versements Riester,Riester_Augmenté,Prime de l'État pour rénovation énergétique,Possède Riester_Augmenté,Effet inchangé (indépendant),—,
+Retraite,Ouvrir Basis-Rente (Rürup),Ruerup_Ouvert,Versement exceptionnel Basis-Rente,Possède Ruerup_Ouvert,Réduction d'impôt majorée cette année,Versement impossible (pas de contrat),Expatrié: bonus fiscal +10% (complexité internationale)
+Retraite,Participer à la Retraite d'Entreprise (bAV),bAV_Ouvert,L'entreprise améliore la retraite complémentaire,Possède bAV_Ouvert,+4 000 € ajoutés par l'employeur,Pas d'effet,
+Retraite,Souscrire Assurance Décès (Risikoleben),Deces_Assuré,Naissance d’un enfant,Possède Deces_Assuré,Aucun effet financier immédiat (protection long terme),—,"Parent Célibataire: recommandé (meta), pas d'effet chiffré"
+Investissements,Plan d'Épargne en ETF (Sparplan),ETF_Investisseur,CRISE: Krach Boursier,Possède ETF_Investisseur,-50% valeur ETF ce tour,—,L'Ambitieux: -60% (effets rouges +20%)
+Investissements,Plan d'Épargne en ETF - Montant élevé,ETF_Investisseur_Plus,Année boursière exceptionnelle,Possède ETF_Investisseur|ETF_Investisseur_Plus,+15% valeur ETF ce tour,—,L'Ambitieux: +18% (effets bonus +20%)
+Investissements,Acheter de l'Or,OR_Detenu,La valeur de l'or grimpe,Possède OR_Detenu,+30% valeur or,—,
+Investissements,Investir dans les Crypto-monnaies,CRYPTO_Detenu,La crypto-monnaie 'moon',Possède CRYPTO_Detenu,x5 sur la position,—,Le Prudent (avant tour 11): ne peut pas détenir CRYPTO_Detenu
+Investissements,Prêter à une PME (Crowdlending),CROWDLEND_Position,Bonne pioche dans le Crowdlending,Possède CROWDLEND_Position,Remboursement +10%,—,
+Investissements,Confier son patrimoine en gestion (2%/an),Gestion_Pilotee,Votre conseiller financier a eu du flair,Possède Gestion_Pilotee,+5 000 € de gain supplémentaire,—,
+Immobilier,Démarrer un Bausparvertrag,BAUSPAR_EnCours,Opportunité d'achat: Appartement,Possède BAUSPAR_EnCours,Accès prêt à taux bas (réduit coût d'emprunt de 10%),Achat possible mais coût normal,
+Immobilier,Être Propriétaire (Profil/Carte),Proprietaire,CRISE: Bulle immobilière,Possède Proprietaire,-30% valeur bien,—,
+Immobilier,Achat d'un appartement (locatif),Bien_Locatif,Votre bien locatif se loue plus cher,Possède Bien_Locatif,+2 000 €/an de revenus locatifs,—,
+Immobilier,Investir en SCPI,SCPI_Detenue,Votre SCPI verse un dividende exceptionnel,Possède SCPI_Detenue,+8% de la valeur des parts,—,
+Immobilier,Hausrat / Habitation,Hausrat_Assuré,Dégât des eaux,Possède Hausrat_Assuré,Franchise 500 €,-4 000 € (si non assuré),
+Immobilier,Être Locataire,Locataire,Votre quartier devient à la mode,Possède Locataire,Loyer +10%,—,Propriétaire: valeur +10% (si Proprietaire)
+Carrière,Formation professionnelle,Formation_OK,Promotion interne,Possède Formation_OK,Salaire +12 000 €/an (au lieu de +10 000),Salaire +10 000 €/an,
+Carrière,Offre d'emploi concurrente,Offre_Concurrente,Promotion inattendue,Possède Offre_Concurrente,Salaire +15% (négociation réussie),Salaire au palier supérieur (option B),
+Carrière,Vous devenez mentor,Mentor,Votre manager vous adore,Possède Mentor,Bonus +2 000 € (dossier premium),+1 500 €,
+Carrière,Gel des salaires (Contrainte),Gel_Salaires,Promotion interne,Sous effet Gel_Salaires,Promotion annulée ce tour,Promotion possible,
+Carrière,Mauvaise évaluation annuelle (Contrainte),Eval_Mauvaise,Promotion interne,Sous effet Eval_Mauvaise,Interdit pendant 2 ans (8 tours),Promotion possible,
+Fiscalité,Conseiller Fiscal (Steuerberater),Steuer_OK,Optimisation fiscale réussie,Possède Steuer_OK,+3 000 € (retour fiscal),"+1 500 € (si fait soi-même, via logiciel)",Expatrié: +4 500 € (plus de leviers)
+Fiscalité,Erreur dans votre déclaration d'impôts,Erreur_Impots,Contrôle fiscal,Possède Erreur_Impots,Redressement -3 000 €,Aucun redressement,
+Fiscalité,Réforme Fiscale d'Urgence (CRISE),Taxe_Excep,Tous (résolution immédiate),—,-5% du Patrimoine total,—,
+Fiscalité,Gouvernement: nouvelle enveloppe défiscalisée,Enveloppe_New,Transfert d’actifs,Possède Enveloppe_New,Transférer 10 000 € en non-imposable (futur gains),Pas d'effet,
+Famille,Naissance (1er enfant),Enfant_1,Aides familiales (Kindergeld),Possède Enfant_1,+2 400 €/an,—,Parent Célibataire: + Entlastungsbetrag +1 908 €/an
+Famille,Naissance (2e enfant),Enfant_2,Aides familiales (Kindergeld),Possède Enfant_2,+2 400 €/an supplémentaires,—,Jeune Famille (profil): +50% sur aides liées à l'État
+Famille,Mariage,Marie,Divorce,Possède Marie,Divorce: Patrimoine /2 ; Coût de vie réajusté,—,Couple DINK: Coût de vie +500 €/an (niveau de vie)
+Social/Loisirs,Acheter une voiture de collection,Car_Collection,Votre voiture est choisie pour un film,Possède Car_Collection,+1 500 € (location au tournage),—,
+Social/Loisirs,Assurance voyage annuelle,Voyage_Assuré,Perte de bagages,Possède Voyage_Assuré,0 € (remboursé),-200 €,
