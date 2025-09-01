@@ -15,9 +15,9 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 
 // ===== Static =====
-app.use(express.static(path.join(__dirname, 'public')));
-// J'ai ajouté /public/data pour que les fichiers JSON soient accessibles si besoin
-app.use('/data', express.static(path.join(__dirname, 'public/data')));
+// Le serveur n'héberge plus les pages HTML.
+// Il expose uniquement le dossier /data pour que les fichiers JSON soient accessibles.
+app.use('/data', express.static(path.join(__dirname, 'data')));
 
 
 // Basic health
@@ -45,11 +45,12 @@ let PROFILES = [];
 let DECK_CARDS = []; // <- Notre nouveau deck sera chargé ici
 
 try {
-  const profilesPath = path.join(__dirname, 'public/data/profiles.fr.json');
+  // Les chemins sont simplifiés pour lire depuis un dossier /data à la racine du projet.
+  const profilesPath = path.join(__dirname, 'data/profiles.fr.json');
   PROFILES = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
   console.log(`Loaded ${PROFILES.length} profiles.`);
 
-  const deckPath = path.join(__dirname, 'public/data/deck_cards.fr.json');
+  const deckPath = path.join(__dirname, 'data/deck_cards.fr.json');
   DECK_CARDS = JSON.parse(fs.readFileSync(deckPath, 'utf-8'));
   console.log(`Loaded ${DECK_CARDS.length} cards into the new deck.`);
 
