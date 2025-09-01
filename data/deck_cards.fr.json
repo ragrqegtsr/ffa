@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "language": "fr",
+  "cards": [
+    {
+      "id": "CARD_KFZ_TR",
+      "type": "proposition",
+      "title": "Assurance Voiture — Tous Risques",
+      "summary": "Couverture maximale des sinistres auto (dommages au véhicule).",
+      "impacts": [
+        "Franchise basse",
+        "Prime annuelle plus élevée"
+      ],
+      "examples": [
+        "Grêle, car-jacking, collision responsable"
+      ],
+      "advice": "Pertinent si véhicule récent ou indispensable au travail.",
+      "grantsMarkers": [
+        "KFZ_Tous_Risques"
+      ],
+      "weight": 3
+    },
+    {
+      "id": "CARD_ACCIDENT_RESP",
+      "type": "evenement",
+      "title": "Accident de voiture responsable",
+      "summary": "Vous êtes responsable d'un accident de la route.",
+      "impacts": [
+        "Dépenses imprévues",
+        "Risque d'immobilisation"
+      ],
+      "examples": [
+        "Choc arrière, mauvaise météo"
+      ],
+      "advice": "Vérifiez votre niveau de couverture (tiers vs tous risques).",
+      "weight": 4
+    },
+    {
+      "id": "CARD_BAGGAGE_LOSS",
+      "type": "evenement",
+      "title": "Perte de bagages",
+      "summary": "Vos bagages sont perdus pendant un voyage.",
+      "impacts": [
+        "Achats urgents",
+        "Perturbation du séjour"
+      ],
+      "examples": [
+        "Escales multiples, retards"
+      ],
+      "advice": "L'assurance voyage couvre généralement ces dépenses.",
+      "weight": 2
+    }
+  ]
+}
