@@ -1,0 +1,1769 @@
+{
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": 1,
+      "title": "Assurance Incapacité (BU) – Standard",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 2,
+      "title": "Assurance Incapacité (BU) – Premium",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 3,
+      "title": "Revaloriser votre BU",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 4,
+      "title": "Ouvrir un plan Riester (montant variable)",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 5,
+      "title": "Augmenter versements Riester (variable)",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 6,
+      "title": "Basculer Riester en fonds",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 7,
+      "title": "Ouvrir Basis-Rente (montant variable)",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 8,
+      "title": "Versement exceptionnel Basis (montant libre)",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 9,
+      "title": "Participer à retraite d’entreprise bAV",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 10,
+      "title": "Augmenter contributions bAV",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 11,
+      "title": "Assurance Décès – Standard",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 12,
+      "title": "Assurance Décès – Étendue",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 13,
+      "title": "Complément Retraite Privée",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 14,
+      "title": "Assurance Dépendance",
+      "category": "Retraite & Prévoyance",
+      "pile": "Proposition"
+    },
+    {
+      "id": 15,
+      "title": "Plan d’épargne ETF – Standard",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 16,
+      "title": "Plan d’épargne ETF – Élevé",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 17,
+      "title": "Investissement ponctuel ETF",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 18,
+      "title": "ETF “Vert” ISR",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 19,
+      "title": "Acheter actions locale",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 20,
+      "title": "Acheter actions internationales",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 21,
+      "title": "Gestion pilotée patrimoine",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 22,
+      "title": "Ouvrir plan enfant",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 23,
+      "title": "Acheter Or",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 24,
+      "title": "Acheter Argent",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 25,
+      "title": "Investir Crypto-monnaies",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 26,
+      "title": "Crowdlending PME",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 27,
+      "title": "Fonds thématique Santé",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 28,
+      "title": "Fonds Immobilier coté",
+      "category": "Investissements Financiers",
+      "pile": "Proposition"
+    },
+    {
+      "id": 29,
+      "title": "Bausparvertrag – Gros montant",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 30,
+      "title": "Bausparvertrag – Petit montant",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 31,
+      "title": "Investir en SCPI classique",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 32,
+      "title": "Investir en SCPI logement jeunes",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 33,
+      "title": "Opportunité d’achat : Garage",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 34,
+      "title": "Opportunité d’achat : Parking",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 35,
+      "title": "Opportunité d’achat : Appartement",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 36,
+      "title": "Achat parcelle forêt",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 37,
+      "title": "Investissement locatif colocation",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 38,
+      "title": "Investissement résidence seniors",
+      "category": "Immobilier",
+      "pile": "Proposition"
+    },
+    {
+      "id": 39,
+      "title": "Responsabilité Civile",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 40,
+      "title": "Assurance Habitation",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 41,
+      "title": "Protection Juridique",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 42,
+      "title": "Assurance Auto – Tiers",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 43,
+      "title": "Assurance Auto – Tous Risques",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 44,
+      "title": "Complémentaire Dentaire",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 45,
+      "title": "Complémentaire Hospitalisation",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 46,
+      "title": "Assurance Animal",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 47,
+      "title": "Assurance Smartphone",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 48,
+      "title": "Assurance Voyage annuelle",
+      "category": "Assurances & Protection",
+      "pile": "Proposition"
+    },
+    {
+      "id": 49,
+      "title": "Formation en finances",
+      "category": "Divers & Vie Quotidienne",
+      "pile": "Proposition"
+    },
+    {
+      "id": 50,
+      "title": "Conseiller Fiscal",
+      "category": "Divers & Vie Quotidienne",
+      "pile": "Proposition"
+    },
+    {
+      "id": 51,
+      "title": "Prêt à la consommation",
+      "category": "Divers & Vie Quotidienne",
+      "pile": "Proposition"
+    },
+    {
+      "id": 52,
+      "title": "Créer micro-entreprise",
+      "category": "Divers & Vie Quotidienne",
+      "pile": "Proposition"
+    },
+    {
+      "id": 53,
+      "title": "Mariage – Grand",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 54,
+      "title": "Mariage – Intime",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 55,
+      "title": "Naissance premier enfant",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 56,
+      "title": "Naissance deuxième enfant",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 57,
+      "title": "Divorce",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 58,
+      "title": "Aider parent en difficulté",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 59,
+      "title": "Conjoint promotion",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 60,
+      "title": "Conjoint chômage",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 61,
+      "title": "Grand anniversaire",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 62,
+      "title": "Conflit familial",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 63,
+      "title": "Soutien scolaire enfant",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 64,
+      "title": "Adoption animal",
+      "category": "Famille & Relations",
+      "pile": "Événement"
+    },
+    {
+      "id": 65,
+      "title": "Promotion interne",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 66,
+      "title": "Opportunité autre ville",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 67,
+      "title": "Entreprise rachetée",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 68,
+      "title": "Burn-out",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 69,
+      "title": "Nouveau manager",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 70,
+      "title": "Conflit collègue",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 71,
+      "title": "Formation professionnelle",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 72,
+      "title": "Employeur offre actions",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 73,
+      "title": "Charrette (rush)",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 74,
+      "title": "Devenir mentor",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 75,
+      "title": "Mutation sectorielle",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 76,
+      "title": "Mission internationale",
+      "category": "Carrière & Travail",
+      "pile": "Événement"
+    },
+    {
+      "id": 77,
+      "title": "Résolution sport",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 78,
+      "title": "Maladie hivernale",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 79,
+      "title": "Manger mieux (bio)",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 80,
+      "title": "Stress intense",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 81,
+      "title": "Nouveau hobby",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 82,
+      "title": "Blessure mineure",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 83,
+      "title": "Check-up complet",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 84,
+      "title": "Insomnie",
+      "category": "Santé & Bien-être",
+      "pile": "Événement"
+    },
+    {
+      "id": 85,
+      "title": "Déménagement",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 86,
+      "title": "Nouveaux voisins",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 87,
+      "title": "Gros travaux maison",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 88,
+      "title": "Dégât des eaux",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 89,
+      "title": "Quartier à la mode",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 90,
+      "title": "Immeuble construit",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 91,
+      "title": "Potager maison",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 92,
+      "title": "Cambriolage",
+      "category": "Logement & Environnement",
+      "pile": "Événement"
+    },
+    {
+      "id": 93,
+      "title": "Grandes vacances",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 94,
+      "title": "Nouveau groupe amis",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 95,
+      "title": "Engagement associatif",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 96,
+      "title": "Organiser grande fête",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 97,
+      "title": "Achat loisir coûteux",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 98,
+      "title": "Ami proche déménage",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 99,
+      "title": "Passion club sport",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 100,
+      "title": "Prendre des cours",
+      "category": "Social & Loisirs",
+      "pile": "Événement"
+    },
+    {
+      "id": 101,
+      "title": "Krach boursier",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 102,
+      "title": "Bulle immobilière",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 103,
+      "title": "Hyperinflation",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 104,
+      "title": "Récession",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 105,
+      "title": "Choc énergétique",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 106,
+      "title": "Réforme fiscale urgence",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 107,
+      "title": "Pandémie mondiale",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 108,
+      "title": "Hausse massive des taux",
+      "category": "Crises Globales",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 109,
+      "title": "Frais bancaires",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 110,
+      "title": "Erreur paie",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 111,
+      "title": "Impôts locaux +",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 112,
+      "title": "Mauvais conseil ami",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 113,
+      "title": "Vol carte bancaire",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 114,
+      "title": "Facture énergie +",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 115,
+      "title": "Investissement chute",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 116,
+      "title": "Charges copropriété +",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 117,
+      "title": "Inflation alimentaire +",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 118,
+      "title": "Prêt ami perdu",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 119,
+      "title": "Erreur déclaration impôts",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 120,
+      "title": "Perte objet valeur",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 121,
+      "title": "Usurpation identité",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 122,
+      "title": "Assurance refuse remboursement",
+      "category": "Finances Personnelles",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 123,
+      "title": "Gel des salaires",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 124,
+      "title": "Restructuration",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 125,
+      "title": "Projet annulé",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 126,
+      "title": "Mauvaise évaluation",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 127,
+      "title": "Pression accrue",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 128,
+      "title": "Faillite client",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 129,
+      "title": "Secteur en crise",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 130,
+      "title": "Mutation non désirée",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 131,
+      "title": "Manager toxique",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 132,
+      "title": "Burn-out sévère",
+      "category": "Carrière & Travail",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 133,
+      "title": "Panne chaudière",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 134,
+      "title": "Réparation voiture",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 135,
+      "title": "Toit endommagé",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 136,
+      "title": "Augmentation loyer",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 137,
+      "title": "Ravalement façade",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 138,
+      "title": "Accident voiture responsable",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 139,
+      "title": "Nuisibles maison",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 140,
+      "title": "Contrôle technique voiture",
+      "category": "Logement & Véhicule",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 141,
+      "title": "Rage de dents",
+      "category": "Santé & Imprévus",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 142,
+      "title": "Problèmes dos",
+      "category": "Santé & Imprévus",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 143,
+      "title": "Lunettes cassées",
+      "category": "Santé & Imprévus",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 144,
+      "title": "Maladie enfant",
+      "category": "Santé & Imprévus",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 145,
+      "title": "Frais médicaux étranger",
+      "category": "Santé & Imprévus",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 146,
+      "title": "Cadeau mariage amis",
+      "category": "Social & Légal",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 147,
+      "title": "EVG/EVJF coûteux",
+      "category": "Social & Légal",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 148,
+      "title": "Litige artisan",
+      "category": "Social & Légal",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 149,
+      "title": "Amende tapage",
+      "category": "Social & Légal",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 150,
+      "title": "Perte procès",
+      "category": "Social & Légal",
+      "pile": "Contrainte"
+    },
+    {
+      "id": 151,
+      "title": "Remboursement impôts",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 152,
+      "title": "Erreur banque favorable",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 153,
+      "title": "Héritage inattendu",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 154,
+      "title": "Baisse taux crédit",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 155,
+      "title": "Prime État rénovation",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 156,
+      "title": "Ami rembourse dette",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 157,
+      "title": "Optimisation fiscale réussie",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 158,
+      "title": "Vente objets internet",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 159,
+      "title": "Baisse essence",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 160,
+      "title": "Subvention vélo électrique",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 161,
+      "title": "Chèque-cadeau entreprise",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 162,
+      "title": "Jackpot mini",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 163,
+      "title": "Récompense concours",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 164,
+      "title": "Gain tombola locale",
+      "category": "Finances Personnelles",
+      "pile": "Bonus"
+    },
+    {
+      "id": 165,
+      "title": "Prime fin d’année",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 166,
+      "title": "Prime exceptionnelle",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 167,
+      "title": "Promotion inattendue",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 168,
+      "title": "Offre concurrente",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 169,
+      "title": "Participation bénéfices",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 170,
+      "title": "Manager vous adore",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 171,
+      "title": "Projet équipe réussi",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 172,
+      "title": "Formation entreprise financée",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 173,
+      "title": "Revenu activité secondaire",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 174,
+      "title": "Retraite d’entreprise améliorée",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 175,
+      "title": "Prix professionnel",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 176,
+      "title": "Congé offert",
+      "category": "Carrière & Travail",
+      "pile": "Bonus"
+    },
+    {
+      "id": 177,
+      "title": "Année boursière exceptionnelle",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 178,
+      "title": "Action “coup de cœur” x3",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 179,
+      "title": "Immobilier local flambe",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 180,
+      "title": "SCPI dividende exceptionnel",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 181,
+      "title": "Or grimpe",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 182,
+      "title": "Conseiller a eu du flair",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 183,
+      "title": "Crowdlending réussi",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 184,
+      "title": "Investissement vert explose",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 185,
+      "title": "Nouvelle enveloppe défiscalisée",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 186,
+      "title": "Bien locatif reloué + cher",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 187,
+      "title": "Crypto “moon” x5",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 188,
+      "title": "Réinvestissement dividendes",
+      "category": "Investissements",
+      "pile": "Bonus"
+    },
+    {
+      "id": 189,
+      "title": "Année en pleine forme",
+      "category": "Santé & Bien-être",
+      "pile": "Bonus"
+    },
+    {
+      "id": 190,
+      "title": "Programme bien-être entreprise",
+      "category": "Santé & Bien-être",
+      "pile": "Bonus"
+    },
+    {
+      "id": 191,
+      "title": "Challenge sportif réussi",
+      "category": "Santé & Bien-être",
+      "pile": "Bonus"
+    },
+    {
+      "id": 192,
+      "title": "Mutuelle remboursement bonus",
+      "category": "Santé & Bien-être",
+      "pile": "Bonus"
+    },
+    {
+      "id": 193,
+      "title": "Cuisiner maison",
+      "category": "Santé & Bien-être",
+      "pile": "Bonus"
+    },
+    {
+      "id": 194,
+      "title": "Vacances reposantes",
+      "category": "Santé & Bien-être",
+      "pile": "Bonus"
+    },
+    {
+      "id": 195,
+      "title": "Cadeau anniversaire généreux",
+      "category": "Social & Hasard",
+      "pile": "Bonus"
+    },
+    {
+      "id": 196,
+      "title": "Gain jeu-concours",
+      "category": "Social & Hasard",
+      "pile": "Bonus"
+    },
+    {
+      "id": 197,
+      "title": "Trouver objet de valeur",
+      "category": "Social & Hasard",
+      "pile": "Bonus"
+    },
+    {
+      "id": 198,
+      "title": "Gros gain loto",
+      "category": "Social & Hasard",
+      "pile": "Bonus"
+    },
+    {
+      "id": 199,
+      "title": "Article presse positif",
+      "category": "Social & Hasard",
+      "pile": "Bonus"
+    },
+    {
+      "id": 200,
+      "title": "Enfant boursier",
+      "category": "Social & Hasard",
+      "pile": "Bonus"
+    }
+  ],
+  "edges": [
+    {
+      "source": 42,
+      "target": 138,
+      "relation": "mitigate",
+      "note": "Tiers réduit pertes accident"
+    },
+    {
+      "source": 43,
+      "target": 138,
+      "relation": "cancel",
+      "note": "Tous risques annule pertes accident"
+    },
+    {
+      "source": 42,
+      "target": 134,
+      "relation": "reduce",
+      "note": "Tiers réduit coût réparation"
+    },
+    {
+      "source": 43,
+      "target": 134,
+      "relation": "reduce_strong",
+      "note": "Tous risques couvre mieux réparations"
+    },
+    {
+      "source": 42,
+      "target": 140,
+      "relation": "reduce",
+      "note": "Tiers réduit impact contrôle technique"
+    },
+    {
+      "source": 43,
+      "target": 140,
+      "relation": "reduce",
+      "note": "Tous risques couvre une partie"
+    },
+    {
+      "source": 40,
+      "target": 92,
+      "relation": "mitigate",
+      "note": "Hausrat couvre cambriolage"
+    },
+    {
+      "source": 40,
+      "target": 88,
+      "relation": "mitigate",
+      "note": "Hausrat couvre dégâts des eaux (franchise)"
+    },
+    {
+      "source": 41,
+      "target": 148,
+      "relation": "reduce",
+      "note": "Rechtsschutz réduit frais litige artisan"
+    },
+    {
+      "source": 41,
+      "target": 150,
+      "relation": "reduce_strong",
+      "note": "Rechtsschutz réduit coût perte procès"
+    },
+    {
+      "source": 1,
+      "target": 68,
+      "relation": "reduce_strong",
+      "note": "BU standard couvre partiellement burn-out"
+    },
+    {
+      "source": 2,
+      "target": 68,
+      "relation": "cancel",
+      "note": "BU premium neutralise burn-out"
+    },
+    {
+      "source": 1,
+      "target": 132,
+      "relation": "reduce",
+      "note": "BU standard réduit burn-out sévère"
+    },
+    {
+      "source": 2,
+      "target": 132,
+      "relation": "reduce",
+      "note": "BU premium réduit fortement burn-out sévère"
+    },
+    {
+      "source": 44,
+      "target": 141,
+      "relation": "reduce_strong",
+      "note": "Dentaire couvre rage de dents"
+    },
+    {
+      "source": 45,
+      "target": 82,
+      "relation": "reduce",
+      "note": "Hospitalisation réduit coût blessure mineure"
+    },
+    {
+      "source": 48,
+      "target": 145,
+      "relation": "reduce_strong",
+      "note": "Ass. voyage couvre frais médicaux étranger"
+    },
+    {
+      "source": 48,
+      "target": 92,
+      "relation": "reduce",
+      "note": "Couvre pertes bagages si combiné à voyage? (narratif)"
+    },
+    {
+      "source": 4,
+      "target": 157,
+      "relation": "enable",
+      "note": "Riester permet optimisation fiscale + Zulage"
+    },
+    {
+      "source": 5,
+      "target": 157,
+      "relation": "boost",
+      "note": "Versements Riester plus élevés, optimisation accrue"
+    },
+    {
+      "source": 6,
+      "target": 177,
+      "relation": "boost",
+      "note": "Riester en fonds profite des bonnes années boursières"
+    },
+    {
+      "source": 7,
+      "target": 151,
+      "relation": "enable",
+      "note": "Basis ouvre voie à remboursements via déductions"
+    },
+    {
+      "source": 8,
+      "target": 151,
+      "relation": "boost",
+      "note": "Versement exceptionnel → remboursement impôts l’année N"
+    },
+    {
+      "source": 9,
+      "target": 174,
+      "relation": "enable",
+      "note": "bAV requis pour bonus employeur"
+    },
+    {
+      "source": 10,
+      "target": 174,
+      "relation": "boost",
+      "note": "Plus de contributions → bonus plus fort"
+    },
+    {
+      "source": 11,
+      "target": 55,
+      "relation": "synergy",
+      "note": "Décès protège la famille (effet narratif)"
+    },
+    {
+      "source": 12,
+      "target": 55,
+      "relation": "synergy",
+      "note": "Idem avec couverture étendue"
+    },
+    {
+      "source": 14,
+      "target": 121,
+      "relation": "reduce",
+      "note": "Assurance dépendance réduit choc financier dépendance (proxy)"
+    },
+    {
+      "source": 15,
+      "target": 101,
+      "relation": "amplify_negative",
+      "note": "Krach impacte fortement actions/ETF"
+    },
+    {
+      "source": 15,
+      "target": 177,
+      "relation": "amplify_positive",
+      "note": "Année boursière booste performances"
+    },
+    {
+      "source": 15,
+      "target": 188,
+      "relation": "compound",
+      "note": "Réinvestissement dividendes plus efficace"
+    },
+    {
+      "source": 16,
+      "target": 101,
+      "relation": "amplify_negative",
+      "note": "Krach impacte fortement actions/ETF"
+    },
+    {
+      "source": 16,
+      "target": 177,
+      "relation": "amplify_positive",
+      "note": "Année boursière booste performances"
+    },
+    {
+      "source": 16,
+      "target": 188,
+      "relation": "compound",
+      "note": "Réinvestissement dividendes plus efficace"
+    },
+    {
+      "source": 17,
+      "target": 101,
+      "relation": "amplify_negative",
+      "note": "Krach impacte fortement actions/ETF"
+    },
+    {
+      "source": 17,
+      "target": 177,
+      "relation": "amplify_positive",
+      "note": "Année boursière booste performances"
+    },
+    {
+      "source": 17,
+      "target": 188,
+      "relation": "compound",
+      "note": "Réinvestissement dividendes plus efficace"
+    },
+    {
+      "source": 18,
+      "target": 101,
+      "relation": "amplify_negative",
+      "note": "Krach impacte fortement actions/ETF"
+    },
+    {
+      "source": 18,
+      "target": 177,
+      "relation": "amplify_positive",
+      "note": "Année boursière booste performances"
+    },
+    {
+      "source": 18,
+      "target": 188,
+      "relation": "compound",
+      "note": "Réinvestissement dividendes plus efficace"
+    },
+    {
+      "source": 20,
+      "target": 101,
+      "relation": "amplify_negative",
+      "note": "Krach impacte fortement actions/ETF"
+    },
+    {
+      "source": 20,
+      "target": 177,
+      "relation": "amplify_positive",
+      "note": "Année boursière booste performances"
+    },
+    {
+      "source": 20,
+      "target": 188,
+      "relation": "compound",
+      "note": "Réinvestissement dividendes plus efficace"
+    },
+    {
+      "source": 28,
+      "target": 101,
+      "relation": "amplify_negative",
+      "note": "Krach impacte fortement actions/ETF"
+    },
+    {
+      "source": 28,
+      "target": 177,
+      "relation": "amplify_positive",
+      "note": "Année boursière booste performances"
+    },
+    {
+      "source": 28,
+      "target": 188,
+      "relation": "compound",
+      "note": "Réinvestissement dividendes plus efficace"
+    },
+    {
+      "source": 19,
+      "target": 178,
+      "relation": "chance",
+      "note": "Action coup de cœur peut tripler"
+    },
+    {
+      "source": 20,
+      "target": 178,
+      "relation": "chance",
+      "note": "Action coup de cœur peut tripler"
+    },
+    {
+      "source": 20,
+      "target": 182,
+      "relation": "boost",
+      "note": "Gestion pilotée peut surperformer"
+    },
+    {
+      "source": 21,
+      "target": 182,
+      "relation": "boost",
+      "note": "Gestion pilotée a du flair"
+    },
+    {
+      "source": 26,
+      "target": 183,
+      "relation": "resolve",
+      "note": "Crowdlending remboursé +10% si réussite"
+    },
+    {
+      "source": 23,
+      "target": 181,
+      "relation": "amplify_positive",
+      "note": "Or grimpe → +30%"
+    },
+    {
+      "source": 24,
+      "target": 181,
+      "relation": "positive",
+      "note": "Argent suit parfois l’or"
+    },
+    {
+      "source": 25,
+      "target": 187,
+      "relation": "amplify_positive",
+      "note": "Crypto moon x5"
+    },
+    {
+      "source": 103,
+      "target": 23,
+      "relation": "hedge",
+      "note": "Hyperinflation → intérêt d’avoir or (effet meta)"
+    },
+    {
+      "source": 29,
+      "target": 35,
+      "relation": "enable",
+      "note": "Bauspar gros montant → prêt à taux bas pour achat appart"
+    },
+    {
+      "source": 30,
+      "target": 35,
+      "relation": "enable",
+      "note": "Bauspar petit montant → idem, effet moindre"
+    },
+    {
+      "source": 31,
+      "target": 180,
+      "relation": "positive",
+      "note": "SCPI dividende exceptionnel"
+    },
+    {
+      "source": 32,
+      "target": 180,
+      "relation": "positive",
+      "note": "SCPI spécialité loge jeunes + dividende"
+    },
+    {
+      "source": 35,
+      "target": 179,
+      "relation": "positive",
+      "note": "Immobilier local flambe"
+    },
+    {
+      "source": 35,
+      "target": 102,
+      "relation": "negative",
+      "note": "Bulle immobilière -30%"
+    },
+    {
+      "source": 37,
+      "target": 186,
+      "relation": "positive",
+      "note": "Bien locatif reloué plus cher"
+    },
+    {
+      "source": 38,
+      "target": 179,
+      "relation": "positive",
+      "note": "Résidence seniors profite marché local"
+    },
+    {
+      "source": 108,
+      "target": 29,
+      "relation": "protect",
+      "note": "Bauspar atténue la hausse de taux à l’achat"
+    },
+    {
+      "source": 40,
+      "target": 88,
+      "relation": "reduce",
+      "note": "Assurance habitation couvre dégâts des eaux (franchise 500€)"
+    },
+    {
+      "source": 39,
+      "target": 146,
+      "relation": "reduce",
+      "note": "RC peut réduire certains coûts sociaux/légaux (meta)"
+    },
+    {
+      "source": 50,
+      "target": 157,
+      "relation": "enable",
+      "note": "Steuerberater → optimisation fiscale réussie"
+    },
+    {
+      "source": 49,
+      "target": 157,
+      "relation": "boost",
+      "note": "Connaissance + : meilleure optimisation (meta)"
+    },
+    {
+      "source": 51,
+      "target": 154,
+      "relation": "reduce",
+      "note": "Baisse des taux crédit diminue coût prêt conso"
+    },
+    {
+      "source": 51,
+      "target": 108,
+      "relation": "increase",
+      "note": "Hausse taux augmente coût crédit"
+    },
+    {
+      "source": 52,
+      "target": 173,
+      "relation": "enable",
+      "note": "Micro-entreprise → revenu activité secondaire"
+    },
+    {
+      "source": 52,
+      "target": 199,
+      "relation": "enable",
+      "note": "Micro-entreprise → article presse positif possible"
+    },
+    {
+      "source": 52,
+      "target": 175,
+      "relation": "enable",
+      "note": "Micro-entreprise → prix professionnel possible"
+    },
+    {
+      "source": 55,
+      "target": 200,
+      "relation": "enable",
+      "note": "Enfant boursier possible plus tard"
+    },
+    {
+      "source": 56,
+      "target": 200,
+      "relation": "enable",
+      "note": "Idem"
+    },
+    {
+      "source": 57,
+      "target": 153,
+      "relation": "indirect",
+      "note": "Divorce parfois déclenche héritage (narratif)"
+    },
+    {
+      "source": 59,
+      "target": 165,
+      "relation": "indirect",
+      "note": "Conjoint promo peut inspirer prime fin d’année (narratif)"
+    },
+    {
+      "source": 60,
+      "target": 151,
+      "relation": "indirect",
+      "note": "Moins d’impôt payé → remboursement (narratif)"
+    },
+    {
+      "source": 71,
+      "target": 65,
+      "relation": "boost",
+      "note": "Formation pro facilite promotion"
+    },
+    {
+      "source": 123,
+      "target": 65,
+      "relation": "block",
+      "note": "Gel des salaires bloque promotion ce tour"
+    },
+    {
+      "source": 126,
+      "target": 65,
+      "relation": "block_timed",
+      "note": "Mauvaise évaluation bloque 2 ans"
+    },
+    {
+      "source": 125,
+      "target": 165,
+      "relation": "block",
+      "note": "Projet annulé → pas de prime fin d’année"
+    },
+    {
+      "source": 168,
+      "target": 65,
+      "relation": "boost",
+      "note": "Offre concurrente aide promotion"
+    },
+    {
+      "source": 74,
+      "target": 170,
+      "relation": "boost",
+      "note": "Mentor → manager vous adore (bonus)"
+    },
+    {
+      "source": 189,
+      "target": 68,
+      "relation": "reduce",
+      "note": "Année en forme réduit risque burnout (meta)"
+    },
+    {
+      "source": 190,
+      "target": 165,
+      "relation": "boost",
+      "note": "Programme bien-être → productivité, prime plus probable (meta)"
+    },
+    {
+      "source": 192,
+      "target": 141,
+      "relation": "reduce",
+      "note": "Mutuelle bonus réduit charges dentaires (meta)"
+    },
+    {
+      "source": 93,
+      "target": 194,
+      "relation": "synergy",
+      "note": "Vacances reposantes après grandes vacances"
+    },
+    {
+      "source": 95,
+      "target": 199,
+      "relation": "enable",
+      "note": "Engagement associatif → article presse positif"
+    },
+    {
+      "source": 42,
+      "target": 134,
+      "relation": "reduce",
+      "note": "Assurance auto Tiers réduit réparations"
+    },
+    {
+      "source": 43,
+      "target": 134,
+      "relation": "reduce_strong",
+      "note": "Assurance auto tous risques couvre gros"
+    }
+  ],
+  "relation_legend": {
+    "enable": "La carte source débloque ou autorise l'effet de la carte cible.",
+    "boost": "La carte source augmente l'effet positif de la carte cible.",
+    "reduce": "La carte source réduit (partiellement) l'effet négatif de la carte cible.",
+    "reduce_strong": "La carte source neutralise presque/totalement l'effet négatif de la carte cible.",
+    "cancel": "La carte source annule l'effet de la carte cible.",
+    "amplify_positive": "La cible devient plus bénéfique si la source est en place.",
+    "amplify_negative": "La cible devient plus néfaste si la source est en place.",
+    "protect": "La source protège structurellement contre l'impact de la cible.",
+    "block": "La source empêche l'effet de la cible (ce tour).",
+    "block_timed": "La source empêche l'effet de la cible pendant une durée définie.",
+    "compound": "La source augmente les effets de capitalisation de la cible.",
+    "chance": "La cible est un événement chance lié à la source.",
+    "indirect": "Corrélation narrative/faible impact mécanique.",
+    "synergy": "Interaction thématique légère."
+  }
+}
