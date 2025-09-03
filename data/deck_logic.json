@@ -29,7 +29,7 @@
       "Downstream_Card": "Accident de voiture responsable",
       "Condition (when downstream appears)": "Aucune assurance",
       "Effect_if_TRUE": "-7 000 €",
-      "Effect_if_FALSE": NaN,
+      "Effect_if_FALSE": null,
       "Profile_Modifiers": "Artiste Indépendant: -9 000 €"
     },
     {
@@ -50,7 +50,7 @@
       "Condition (when downstream appears)": "Assuré Tous Risques",
       "Effect_if_TRUE": "-0 à -500 € (selon franchise)",
       "Effect_if_FALSE": "-3 000 € (sans tous risques)",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Auto",
@@ -60,7 +60,7 @@
       "Condition (when downstream appears)": "Possède Voyage_Assuré",
       "Effect_if_TRUE": "0 € (remboursé)",
       "Effect_if_FALSE": "-700 € (achats urgents)",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Auto",
@@ -70,7 +70,7 @@
       "Condition (when downstream appears)": "Possède Voyage_Assuré",
       "Effect_if_TRUE": "0 à -200 € (franchise)",
       "Effect_if_FALSE": "-1 000 €",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Habitation",
@@ -80,7 +80,7 @@
       "Condition (when downstream appears)": "Possède Hausrat_Assuré",
       "Effect_if_TRUE": "-1 000 € de perte (franchise)",
       "Effect_if_FALSE": "-8 000 € de perte",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Juridique",
@@ -100,7 +100,7 @@
       "Condition (when downstream appears)": "Possède Rechtsschutz_Assuré",
       "Effect_if_TRUE": "-500 € (reste à charge)",
       "Effect_if_FALSE": "-2 000 € (frais avocat)",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Juridique",
@@ -110,7 +110,7 @@
       "Condition (when downstream appears)": "Possède Rechtsschutz_Assuré",
       "Effect_if_TRUE": "-0 € (propriétaire condamné à rembourser)",
       "Effect_if_FALSE": "-1 500 € (perte)",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Santé",
@@ -130,7 +130,7 @@
       "Condition (when downstream appears)": "Possède BU_Premium",
       "Effect_if_TRUE": "0 % de perte (couverture totale)",
       "Effect_if_FALSE": "Perte de salaire -30%",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Santé",
@@ -140,7 +140,7 @@
       "Condition (when downstream appears)": "Possède Dentaire_Assuré",
       "Effect_if_TRUE": "-200 € (reste à charge)",
       "Effect_if_FALSE": "-1 200 €",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Santé",
@@ -150,7 +150,7 @@
       "Condition (when downstream appears)": "Possède Hosp_Assuré",
       "Effect_if_TRUE": "-0 à -100 €",
       "Effect_if_FALSE": "-300 €",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Retraite",
@@ -170,7 +170,7 @@
       "Condition (when downstream appears)": "Possède Riester_Augmenté",
       "Effect_if_TRUE": "Effet inchangé (indépendant)",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Retraite",
@@ -190,7 +190,7 @@
       "Condition (when downstream appears)": "Possède bAV_Ouvert",
       "Effect_if_TRUE": "+4 000 € ajoutés par l'employeur",
       "Effect_if_FALSE": "Pas d'effet",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Retraite",
@@ -230,7 +230,7 @@
       "Condition (when downstream appears)": "Possède OR_Detenu",
       "Effect_if_TRUE": "+30% valeur or",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Investissements",
@@ -250,7 +250,7 @@
       "Condition (when downstream appears)": "Possède CROWDLEND_Position",
       "Effect_if_TRUE": "Remboursement +10%",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Investissements",
@@ -260,7 +260,7 @@
       "Condition (when downstream appears)": "Possède Gestion_Pilotee",
       "Effect_if_TRUE": "+5 000 € de gain supplémentaire",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Immobilier",
@@ -270,7 +270,7 @@
       "Condition (when downstream appears)": "Possède BAUSPAR_EnCours",
       "Effect_if_TRUE": "Accès prêt à taux bas (réduit coût d'emprunt de 10%)",
       "Effect_if_FALSE": "Achat possible mais coût normal",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Immobilier",
@@ -280,7 +280,7 @@
       "Condition (when downstream appears)": "Possède Proprietaire",
       "Effect_if_TRUE": "-30% valeur bien",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Immobilier",
@@ -290,7 +290,7 @@
       "Condition (when downstream appears)": "Possède Bien_Locatif",
       "Effect_if_TRUE": "+2 000 €/an de revenus locatifs",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Immobilier",
@@ -300,7 +300,7 @@
       "Condition (when downstream appears)": "Possède SCPI_Detenue",
       "Effect_if_TRUE": "+8% de la valeur des parts",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Immobilier",
@@ -310,7 +310,7 @@
       "Condition (when downstream appears)": "Possède Hausrat_Assuré",
       "Effect_if_TRUE": "Franchise 500 €",
       "Effect_if_FALSE": "-4 000 € (si non assuré)",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Immobilier",
@@ -330,7 +330,7 @@
       "Condition (when downstream appears)": "Possède Formation_OK",
       "Effect_if_TRUE": "Salaire +12 000 €/an (au lieu de +10 000)",
       "Effect_if_FALSE": "Salaire +10 000 €/an",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Carrière",
@@ -340,7 +340,7 @@
       "Condition (when downstream appears)": "Possède Offre_Concurrente",
       "Effect_if_TRUE": "Salaire +15% (négociation réussie)",
       "Effect_if_FALSE": "Salaire au palier supérieur (option B)",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Carrière",
@@ -350,7 +350,7 @@
       "Condition (when downstream appears)": "Possède Mentor",
       "Effect_if_TRUE": "Bonus +2 000 € (dossier premium)",
       "Effect_if_FALSE": "+1 500 €",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Carrière",
@@ -360,7 +360,7 @@
       "Condition (when downstream appears)": "Sous effet Gel_Salaires",
       "Effect_if_TRUE": "Promotion annulée ce tour",
       "Effect_if_FALSE": "Promotion possible",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Carrière",
@@ -370,7 +370,7 @@
       "Condition (when downstream appears)": "Sous effet Eval_Mauvaise",
       "Effect_if_TRUE": "Interdit pendant 2 ans (8 tours)",
       "Effect_if_FALSE": "Promotion possible",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Fiscalité",
@@ -390,7 +390,7 @@
       "Condition (when downstream appears)": "Possède Erreur_Impots",
       "Effect_if_TRUE": "Redressement -3 000 €",
       "Effect_if_FALSE": "Aucun redressement",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Fiscalité",
@@ -400,7 +400,7 @@
       "Condition (when downstream appears)": "—",
       "Effect_if_TRUE": "-5% du Patrimoine total",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Fiscalité",
@@ -410,7 +410,7 @@
       "Condition (when downstream appears)": "Possède Enveloppe_New",
       "Effect_if_TRUE": "Transférer 10 000 € en non-imposable (futur gains)",
       "Effect_if_FALSE": "Pas d'effet",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Famille",
@@ -450,7 +450,7 @@
       "Condition (when downstream appears)": "Possède Car_Collection",
       "Effect_if_TRUE": "+1 500 € (location au tournage)",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     },
     {
       "Subsystem": "Social/Loisirs",
@@ -460,7 +460,7 @@
       "Condition (when downstream appears)": "Possède Voyage_Assuré",
       "Effect_if_TRUE": "0 € (remboursé)",
       "Effect_if_FALSE": "-200 €",
-      "Profile_Modifiers": NaN
+      "Profile_Modifiers": null
     }
   ]
 }
