@@ -1,6 +1,6 @@
 {
   "name": "finanz-weg",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Finanz-Weg realtime WebSocket backend + static pages",
   "main": "server-2.js",
   "scripts": {
@@ -9,6 +9,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "nanoid": "^5.0.7",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "cors": "^2.8.5"
   }
 }
