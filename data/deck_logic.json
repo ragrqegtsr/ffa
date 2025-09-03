@@ -29,7 +29,7 @@
       "Downstream_Card": "Accident de voiture responsable",
       "Condition (when downstream appears)": "Aucune assurance",
       "Effect_if_TRUE": "-7 000 €",
-      "Effect_if_FALSE": "",
+      "Effect_if_FALSE": NaN,
       "Profile_Modifiers": "Artiste Indépendant: -9 000 €"
     },
     {
@@ -50,7 +50,7 @@
       "Condition (when downstream appears)": "Assuré Tous Risques",
       "Effect_if_TRUE": "-0 à -500 € (selon franchise)",
       "Effect_if_FALSE": "-3 000 € (sans tous risques)",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Auto",
@@ -60,7 +60,7 @@
       "Condition (when downstream appears)": "Possède Voyage_Assuré",
       "Effect_if_TRUE": "0 € (remboursé)",
       "Effect_if_FALSE": "-700 € (achats urgents)",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Auto",
@@ -70,7 +70,7 @@
       "Condition (when downstream appears)": "Possède Voyage_Assuré",
       "Effect_if_TRUE": "0 à -200 € (franchise)",
       "Effect_if_FALSE": "-1 000 €",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Habitation",
@@ -80,7 +80,7 @@
       "Condition (when downstream appears)": "Possède Hausrat_Assuré",
       "Effect_if_TRUE": "-1 000 € de perte (franchise)",
       "Effect_if_FALSE": "-8 000 € de perte",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Juridique",
@@ -100,7 +100,7 @@
       "Condition (when downstream appears)": "Possède Rechtsschutz_Assuré",
       "Effect_if_TRUE": "-500 € (reste à charge)",
       "Effect_if_FALSE": "-2 000 € (frais avocat)",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Juridique",
@@ -110,7 +110,7 @@
       "Condition (when downstream appears)": "Possède Rechtsschutz_Assuré",
       "Effect_if_TRUE": "-0 € (propriétaire condamné à rembourser)",
       "Effect_if_FALSE": "-1 500 € (perte)",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Santé",
@@ -130,7 +130,7 @@
       "Condition (when downstream appears)": "Possède BU_Premium",
       "Effect_if_TRUE": "0 % de perte (couverture totale)",
       "Effect_if_FALSE": "Perte de salaire -30%",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Santé",
@@ -140,7 +140,7 @@
       "Condition (when downstream appears)": "Possède Dentaire_Assuré",
       "Effect_if_TRUE": "-200 € (reste à charge)",
       "Effect_if_FALSE": "-1 200 €",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Santé",
@@ -150,7 +150,7 @@
       "Condition (when downstream appears)": "Possède Hosp_Assuré",
       "Effect_if_TRUE": "-0 à -100 €",
       "Effect_if_FALSE": "-300 €",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Retraite",
@@ -170,7 +170,7 @@
       "Condition (when downstream appears)": "Possède Riester_Augmenté",
       "Effect_if_TRUE": "Effet inchangé (indépendant)",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Retraite",
@@ -190,7 +190,7 @@
       "Condition (when downstream appears)": "Possède bAV_Ouvert",
       "Effect_if_TRUE": "+4 000 € ajoutés par l'employeur",
       "Effect_if_FALSE": "Pas d'effet",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Retraite",
@@ -230,7 +230,7 @@
       "Condition (when downstream appears)": "Possède OR_Detenu",
       "Effect_if_TRUE": "+30% valeur or",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Investissements",
@@ -250,7 +250,7 @@
       "Condition (when downstream appears)": "Possède CROWDLEND_Position",
       "Effect_if_TRUE": "Remboursement +10%",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Investissements",
@@ -260,7 +260,7 @@
       "Condition (when downstream appears)": "Possède Gestion_Pilotee",
       "Effect_if_TRUE": "+5 000 € de gain supplémentaire",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Immobilier",
@@ -270,7 +270,7 @@
       "Condition (when downstream appears)": "Possède BAUSPAR_EnCours",
       "Effect_if_TRUE": "Accès prêt à taux bas (réduit coût d'emprunt de 10%)",
       "Effect_if_FALSE": "Achat possible mais coût normal",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Immobilier",
@@ -280,7 +280,7 @@
       "Condition (when downstream appears)": "Possède Proprietaire",
       "Effect_if_TRUE": "-30% valeur bien",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Immobilier",
@@ -290,7 +290,7 @@
       "Condition (when downstream appears)": "Possède Bien_Locatif",
       "Effect_if_TRUE": "+2 000 €/an de revenus locatifs",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Immobilier",
@@ -300,7 +300,7 @@
       "Condition (when downstream appears)": "Possède SCPI_Detenue",
       "Effect_if_TRUE": "+8% de la valeur des parts",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Immobilier",
@@ -310,7 +310,7 @@
       "Condition (when downstream appears)": "Possède Hausrat_Assuré",
       "Effect_if_TRUE": "Franchise 500 €",
       "Effect_if_FALSE": "-4 000 € (si non assuré)",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Immobilier",
@@ -330,7 +330,7 @@
       "Condition (when downstream appears)": "Possède Formation_OK",
       "Effect_if_TRUE": "Salaire +12 000 €/an (au lieu de +10 000)",
       "Effect_if_FALSE": "Salaire +10 000 €/an",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Carrière",
@@ -340,7 +340,7 @@
       "Condition (when downstream appears)": "Possède Offre_Concurrente",
       "Effect_if_TRUE": "Salaire +15% (négociation réussie)",
       "Effect_if_FALSE": "Salaire au palier supérieur (option B)",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Carrière",
@@ -350,7 +350,7 @@
       "Condition (when downstream appears)": "Possède Mentor",
       "Effect_if_TRUE": "Bonus +2 000 € (dossier premium)",
       "Effect_if_FALSE": "+1 500 €",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Carrière",
@@ -360,7 +360,7 @@
       "Condition (when downstream appears)": "Sous effet Gel_Salaires",
       "Effect_if_TRUE": "Promotion annulée ce tour",
       "Effect_if_FALSE": "Promotion possible",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Carrière",
@@ -370,7 +370,7 @@
       "Condition (when downstream appears)": "Sous effet Eval_Mauvaise",
       "Effect_if_TRUE": "Interdit pendant 2 ans (8 tours)",
       "Effect_if_FALSE": "Promotion possible",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Fiscalité",
@@ -390,7 +390,7 @@
       "Condition (when downstream appears)": "Possède Erreur_Impots",
       "Effect_if_TRUE": "Redressement -3 000 €",
       "Effect_if_FALSE": "Aucun redressement",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Fiscalité",
@@ -400,7 +400,7 @@
       "Condition (when downstream appears)": "—",
       "Effect_if_TRUE": "-5% du Patrimoine total",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Fiscalité",
@@ -410,7 +410,7 @@
       "Condition (when downstream appears)": "Possède Enveloppe_New",
       "Effect_if_TRUE": "Transférer 10 000 € en non-imposable (futur gains)",
       "Effect_if_FALSE": "Pas d'effet",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Famille",
@@ -450,7 +450,7 @@
       "Condition (when downstream appears)": "Possède Car_Collection",
       "Effect_if_TRUE": "+1 500 € (location au tournage)",
       "Effect_if_FALSE": "—",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     },
     {
       "Subsystem": "Social/Loisirs",
@@ -460,251 +460,7 @@
       "Condition (when downstream appears)": "Possède Voyage_Assuré",
       "Effect_if_TRUE": "0 € (remboursé)",
       "Effect_if_FALSE": "-200 €",
-      "Profile_Modifiers": ""
+      "Profile_Modifiers": NaN
     }
-  ],
-  "markers": [
-    {
-      "Marker": "KFZ_Tiers",
-      "Description": "Assurance auto au Tiers. Réduit fortement les pertes liées aux accidents."
-    },
-    {
-      "Marker": "KFZ_Tous_Risques",
-      "Description": "Assurance auto Tous Risques. Annule la plupart des pertes liées à l'auto."
-    },
-    {
-      "Marker": "Voyage_Assuré",
-      "Description": "Assurance voyage annuelle. Couvre bagages et frais médicaux à l'étranger."
-    },
-    {
-      "Marker": "Hausrat_Assuré",
-      "Description": "Assurance habitation (Hausrat). Couvre cambriolage/dégâts des eaux (franchise)."
-    },
-    {
-      "Marker": "Rechtsschutz_Assuré",
-      "Description": "Protection juridique. Réduit pertes lors des litiges et procès."
-    },
-    {
-      "Marker": "BU_Standard",
-      "Description": "Assurance incapacité standard. Réduit l'impact des pertes de revenus pour burn-out/incapacité."
-    },
-    {
-      "Marker": "BU_Premium",
-      "Description": "Assurance incapacité premium. Neutralise la plupart des pertes de revenus pour incapacité."
-    },
-    {
-      "Marker": "Dentaire_Assuré",
-      "Description": "Complémentaire dentaire. Réduit fortement les frais dentaires."
-    },
-    {
-      "Marker": "Hosp_Assuré",
-      "Description": "Complémentaire hospitalisation. Réduit frais liés aux séjours hospitaliers."
-    },
-    {
-      "Marker": "Riester_Ouvert",
-      "Description": "Plan Riester ouvert. Donne droit aux subventions (Zulage) et bonus fiscaux."
-    },
-    {
-      "Marker": "Riester_Augmenté",
-      "Description": "Versements Riester augmentés. Aides maximisées."
-    },
-    {
-      "Marker": "Ruerup_Ouvert",
-      "Description": "Basis-Rente (Rürup) ouvert. Déduction fiscale sur les versements."
-    },
-    {
-      "Marker": "bAV_Ouvert",
-      "Description": "Retraite d'entreprise active. Éligible aux abondements."
-    },
-    {
-      "Marker": "Deces_Assuré",
-      "Description": "Assurance décès active."
-    },
-    {
-      "Marker": "ETF_Investisseur",
-      "Description": "Sparplan ETF en cours. Exposé aux variations de marché."
-    },
-    {
-      "Marker": "ETF_Investisseur_Plus",
-      "Description": "Sparplan ETF montant élevé. Exposition accrue."
-    },
-    {
-      "Marker": "OR_Detenu",
-      "Description": "Détention d'or physique."
-    },
-    {
-      "Marker": "CRYPTO_Detenu",
-      "Description": "Détention de crypto-monnaies."
-    },
-    {
-      "Marker": "CROWDLEND_Position",
-      "Description": "Position de prêt PME (crowdlending)."
-    },
-    {
-      "Marker": "Gestion_Pilotee",
-      "Description": "Patrimoine confié en gestion (2%/an de frais)."
-    },
-    {
-      "Marker": "BAUSPAR_EnCours",
-      "Description": "Contrat Bauspar actif. Accès futur à prêt à taux bas."
-    },
-    {
-      "Marker": "Proprietaire",
-      "Description": "Statut propriétaire d’un bien immobilier."
-    },
-    {
-      "Marker": "Bien_Locatif",
-      "Description": "Possession d'un bien locatif générant des loyers."
-    },
-    {
-      "Marker": "Formation_OK",
-      "Description": "Formation pro validée. Facilite promotions."
-    },
-    {
-      "Marker": "Offre_Concurrente",
-      "Description": "Offre d'emploi concurrente en main pour négocier."
-    },
-    {
-      "Marker": "Mentor",
-      "Description": "Rôle de mentor. Meilleure perception/bonus potentiels."
-    },
-    {
-      "Marker": "Steuer_OK",
-      "Description": "Suivi par un Steuerberater. Optimisations et conformité."
-    },
-    {
-      "Marker": "Erreur_Impots",
-      "Description": "Erreur dans la déclaration d'impôts."
-    },
-    {
-      "Marker": "Taxe_Excep",
-      "Description": "Impôt exceptionnel (réforme d'urgence)."
-    },
-    {
-      "Marker": "Enveloppe_New",
-      "Description": "Nouvelle enveloppe défiscalisée ouverte."
-    },
-    {
-      "Marker": "Enfant_1",
-      "Description": "Premier enfant."
-    },
-    {
-      "Marker": "Enfant_2",
-      "Description": "Deuxième enfant."
-    },
-    {
-      "Marker": "Marie",
-      "Description": "Marié(e)."
-    },
-    {
-      "Marker": "Car_Collection",
-      "Description": "Possession de voiture de collection."
-    },
-    {
-      "Marker": "Locataire",
-      "Description": "Statut locataire."
-    }
-  ],
-  "profiles": [
-    {
-      "Profil": "L'Ambitieux",
-      "Modificateurs (synthèse jouables)": "Effets Bonus (Jaunes) +20% ; Effets Contraintes (Rouges) +20%."
-    },
-    {
-      "Profil": "Le Prudent",
-      "Modificateurs (synthèse jouables)": "Interdiction d'investissements risqués (Actions/ETF/Crypto) jusqu'au tour 11 ; +1 Rentenpunkt tous les 5 ans."
-    },
-    {
-      "Profil": "La Jeune Famille",
-      "Modificateurs (synthèse jouables)": "Aides d'État (Kindergeld/Riester) +50%."
-    },
-    {
-      "Profil": "L'Artiste Indépendant",
-      "Modificateurs (synthèse jouables)": "Chocs de trésorerie (pannes/accident sans couverture) +20%."
-    },
-    {
-      "Profil": "L'Expatrié(e)",
-      "Modificateurs (synthèse jouables)": "Effets des cartes 'Steuerberater' et 'Optimisation fiscale' +50% ; Frais admin +500 € sur évènements auto/justice."
-    },
-    {
-      "Profil": "L'Entrepreneur Tech",
-      "Modificateurs (synthèse jouables)": "Effets 'Année boursière' et 'Krach' ±10% supplémentaires sur Actions/ETF (forte exposition tech)."
-    },
-    {
-      "Profil": "Couple DINK",
-      "Modificateurs (synthèse jouables)": "Cartes confort (Tous Risques, Premium) ajoutent +200 €/an au Coût de vie."
-    },
-    {
-      "Profil": "L'Héritier/Héritière",
-      "Modificateurs (synthèse jouables)": "Frais de conseil 10% du patrimoine tous les 10 tours (règle de profil)."
-    },
-    {
-      "Profil": "Le Stagiaire Perpétuel",
-      "Modificateurs (synthèse jouables)": "Première carte Bonus qui augmente le salaire : effet x3 (règle de profil)."
-    },
-    {
-      "Profil": "L'Ouvrier Qualifié",
-      "Modificateurs (synthèse jouables)": "Pannes/voiture/TÜV non couverts : +1 000 € de pertes ; retraite anticipée donne +10% valeur des Rentenpunkte."
-    },
-    {
-      "Profil": "Le Médecin Résident",
-      "Modificateurs (synthèse jouables)": "Burn-out couvert à 85% même en BU_Standard."
-    },
-    {
-      "Profil": "Le Minimaliste",
-      "Modificateurs (synthèse jouables)": "Coût de vie ne peut pas être augmenté par Contrainte (indemne des hausses structurelles)."
-    },
-    {
-      "Profil": "Le Commercial aux Gros Bonus",
-      "Modificateurs (synthèse jouables)": "Carte 'Négociation' : +2 000 € à la vente de carte (règle de profil)."
-    },
-    {
-      "Profil": "Le Chercheur Universitaire",
-      "Modificateurs (synthèse jouables)": "Carte 'Eureka' : transformer 1 'Proposition financière' en 'Bonus' si <3 Bonus en main."
-    },
-    {
-      "Profil": "Le Reconverti",
-      "Modificateurs (synthèse jouables)": "Connaissance Financière = 4/5 : +10% de rendement sur décisions 'Investir' (non cumulatif)."
-    },
-    {
-      "Profil": "L'Écologiste Engagé",
-      "Modificateurs (synthèse jouables)": "Investissements 'verts' : +2 000 € à chaque occurrence."
-    },
-    {
-      "Profil": "Le Super Négociateur",
-      "Modificateurs (synthèse jouables)": "1 fois / 5 ans : échange forcé de carte (même couleur)."
-    },
-    {
-      "Profil": "Le Parent Célibataire",
-      "Modificateurs (synthèse jouables)": "Entlastungsbetrag +1 908 €/an par foyer ; Coût de vie de base +10 000 €/an (enfant)."
-    },
-    {
-      "Profil": "Le Propriétaire Endetté",
-      "Modificateurs (synthèse jouables)": "Immunisé aux hausses de loyers ; vulnérable aux 'Crise immobilière' et 'Réparations coûteuses'."
-    },
-    {
-      "Profil": "L'Influenceur",
-      "Modificateurs (synthèse jouables)": "Salaire = 10 000 € x dé (phase Banque)."
-    }
-  ],
-  "schema": {
-    "rules": {
-      "Subsystem": "Logical group (Auto, Retraite, Investissements, etc.)",
-      "Upstream_Card": "Card that grants a persistent state (marker)",
-      "Upstream_Marker_Granted": "Name of marker(s) granted (regex allowed with |)",
-      "Downstream_Card": "Card whose effect depends on the marker",
-      "Condition (when downstream appears)": "Natural language condition to test",
-      "Effect_if_TRUE": "Effect applied if condition holds",
-      "Effect_if_FALSE": "Effect applied if condition does not hold",
-      "Profile_Modifiers": "Overrides or adjustments by player profile"
-    },
-    "markers": {
-      "Marker": "Marker ID used in rules",
-      "Description": "Human-readable description"
-    },
-    "profiles": {
-      "Profil": "Profile name",
-      "Modificateurs (synthèse jouables)": "Rules that tweak effects without changing card draw probabilities"
-    }
-  }
+  ]
 }
