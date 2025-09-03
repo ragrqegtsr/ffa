@@ -1,6 +1,6 @@
 // server-2.js — vNext
-// - Lecture optionnelle des cartes par langue: data/cards.<lang>.json
-// - Lecture optionnelle de la logique: data/deck_logic.v1.1.json (pour futur moteur)
+// - Lecture des cartes depuis: data/deck_standard_fr.json
+// - Lecture de la logique depuis: data/deck_logic.json
 // - Profils multilingues: data/profiles.<lang>.json (déjà existant)
 // - Modes: long (42 tours, phases A–E) | blitz (10 tours, sans phases)
 // - Rétro-compat: si fichiers absents, fallback sur deck généré par gabarit
@@ -13,6 +13,28 @@ const { nanoid } = require('nanoid');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
+
+// ===== Game Data Loading =====
+// Chargement de la structure des cartes et de la logique de jeu.
+let deckStandard;
+let deckLogic;
+
+try {
+  const deckStandardPath = path.join(__dirname, 'data', 'deck_standard_fr.json');
+  const deckLogicPath = path.join(__dirname, 'data', 'deck_logic.json');
+
+  deckStandard = JSON.parse(fs.readFileSync(deckStandardPath, 'utf-8'));
+  deckLogic = JSON.parse(fs.readFileSync(deckLogicPath, 'utf-8'));
+
+  console.log('Game data loaded successfully:');
+  console.log(`- ${deckStandard.nodes.length} card nodes from deck_standard_fr.json`);
+  console.log(`- ${deckLogic.rules.length} rules from deck_logic.json`);
+
+} catch (error) {
+  console.error('Error loading game data files:', error);
+  process.exit(1); // Stop the server if data can't be loaded
+}
+
 
 // ===== Static =====
 // Le serveur n'héberge plus les pages HTML.
@@ -39,167 +61,82 @@ server.on('upgrade', (req, socket, head) => {
   }
 });
 
-// ===== In-memory store =====
+
 const SESSIONS = new Map();
-let PROFILES = [];
-let DECK_CARDS = []; // <- Notre nouveau deck sera chargé ici
-
-try {
-  // Les chemins sont simplifiés pour lire depuis un dossier /data à la racine du projet.
-  const profilesPath = path.join(__dirname, 'data/profiles.fr.json');
-  PROFILES = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
-  console.log(`Loaded ${PROFILES.length} profiles.`);
-
-  const deckPath = path.join(__dirname, 'data/deck_cards.fr.json');
-  DECK_CARDS = JSON.parse(fs.readFileSync(deckPath, 'utf-8'));
-  console.log(`Loaded ${DECK_CARDS.length} cards into the new deck.`);
-
-} catch (e) {
-  console.error('Failed to load data files!', e);
-  process.exit(1);
-}
-
-
-// ===== Utils =====
 const now = () => new Date().toISOString();
-const broadcast = (sockets, msg) => {
-  if (!sockets) return;
-  const str = JSON.stringify(msg);
-  sockets.forEach(s => s.send(str, (err) => {
-    if (err) console.error(`Failed to send to a socket`, err);
-  }));
+
+const findPlayer = (s, playerId) => s.players.find(p => p.id === playerId);
+const ensureDecisions = (s, playerId, turn) => {
+  s.decisions[playerId] = s.decisions[playerId] || {};
+  s.decisions[playerId][turn] = s.decisions[playerId][turn] || {};
+  return s.decisions[playerId][turn];
 };
+const setStatusLight = (p) => {
+  const isFresh = (new Date() - new Date(p.lastActive)) < 15000;
+  p.status = p.answered ? 'green' : (isFresh ? 'yellow' : 'red');
+};
+
+// Send state to all players in a session
 const broadcastState = (s) => {
-  if (!s || !s.sockets) return;
-  const state = { ...s, sockets: undefined }; // don't leak sockets
-  broadcast(s.sockets, { type:'state:update', state });
-};
-const logServer = (s, player, event, detail, meta) => {
-  if (!s.log) s.log = [];
-  s.log.push({
-    ts: now(),
-    turn: s.turn,
-    player: player ? {id:player.id, name:player.name} : null,
-    event,
-    detail,
-    meta: meta||null,
-  });
-};
-const ensureDecisions = (s,pId,t) => {
-  if(!s.decisions) s.decisions={}; if(!s.decisions[pId])s.decisions[pId]={}; if(!s.decisions[pId][t])s.decisions[pId][t]={}; return s.decisions[pId][t];
-};
-const setStatusLight = (p) => { p.statusLight = p.answered ? 'green' : 'yellow'; };
-const findPlayer = (s, playerId) => (s.players||[]).find(p=>p.id===playerId);
-const ensurePlayer = (s, playerId) => {
-  if (!s.players) s.players = [];
-  let p = s.players.find(x => x.id === playerId);
-  if (!p) {
-    p = { id: playerId, name: `P-${playerId.substr(0,4)}`, answered: false };
-    s.players.push(p);
-  }
-  return p;
+  const state = JSON.stringify({ type: 'host:state', session: s });
+  s.players.forEach(p => p.ws.send(state));
+  if (s.hostWs) s.hostWs.send(state);
 };
 
-// ===== Card Drawing Logic =====
-/**
- * Pioche 4 cartes (une de chaque pile) depuis le deck principal.
- * @param {object} session - La session de jeu.
- * @returns {object} Un objet contenant les 4 cartes piochées.
- */
-function drawCards(session) {
-  const drawn = {};
-  const piles = ["Proposition", "Événement", "Contrainte", "Bonus"];
-
-  piles.forEach(pileName => {
-    const pileCards = DECK_CARDS.filter(card => card.pile === pileName);
-    if (pileCards.length > 0) {
-      // Pour l'instant, pioche aléatoire simple.
-      // On pourra ajouter une logique pour éviter les doublons plus tard.
-      const randomIndex = Math.floor(Math.random() * pileCards.length);
-      const card = pileCards[randomIndex];
-      // La clé est en minuscule pour correspondre au format attendu par le client
-      drawn[pileName.toLowerCase()] = card;
-    } else {
-      console.warn(`No cards found for pile: ${pileName}`);
-    }
-  });
-
-  return drawn;
+const logServer = (s, p, event, msg) => {
+  const turn = s ? `T${s.turn}` : 'T?';
+  const profile = p ? `P:${p.profile.name}`: 'SYS';
+  console.log(`[${s.code}] ${turn} | ${profile} | ${event} | ${msg}`);
 }
 
 
-// ===== WebSocket Logic =====
 wss.on('connection', (ws) => {
-  console.log('client connected');
-  ws.on('close', () => console.log('client disconnected'));
-
-  ws.on('message', (raw) => {
-    const msg = JSON.parse(raw);
-    // console.log('RECV', msg);
+  ws.on('message', (message) => {
+    let msg;
+    try {
+      msg = JSON.parse(message);
+    } catch (e) {
+      return; // Ignore malformed JSON
+    }
 
     switch (msg.type) {
       case 'host:create': {
         const sessionId = nanoid(8);
-        const code = String(Math.floor(1000 + Math.random() * 9000));
+        const code = Array.from({ length: 4 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
         const s = {
           id: sessionId,
           code,
-          hostId: msg.hostId,
-          sockets: [ws],
+          hostWs: ws,
           players: [],
-          state: 'lobby',
           turn: 0,
-          timer: 180, // secs
-          profiles: PROFILES,
+          decisions: {}, // { playerId: { turn: { cardType: decision } } }
           createdAt: now(),
         };
         SESSIONS.set(sessionId, s);
-        ws.send(JSON.stringify({ type:'host:created', sessionId, code }));
-        logServer(s, null, 'host:create', `Session ${code}`);
-        break;
-      }
-
-      case 'host:start': {
-        const s = SESSIONS.get(msg.sessionId);
-        if (!s) return;
-        s.state = 'game';
-        s.players.forEach(p => {
-          const profile = PROFILES.find(x => x.key === p.profileKey);
-          p.patrimoine = profile.start.capitalStart;
-          p.rentenpunkte = 0; // todo
-        });
-        logServer(s, null, 'host:start', `Game started with ${s.players.length} players`);
-        broadcastState(s);
-        break;
-      }
-
-      case 'host:draw': {
-        const s = SESSIONS.get(msg.sessionId);
-        if (!s) return;
-        s.turn++;
-        s.turnDeadline = Date.now() + (s.timer * 1000);
-        // On utilise notre nouvelle fonction de pioche
-        const drawn = drawCards(s);
-        s.drawnCards = drawn;
-        s.players.forEach(p => { p.answered = false; });
-        s.state = 'decision';
-        logServer(s, null, 'draw', `Tour ${s.turn}`, { drawn });
-        broadcastState(s);
+        ws.send(JSON.stringify({ type: 'host:created', session: s }));
+        console.log(`[${code}] Host created session ${sessionId}`);
         break;
       }
 
       case 'student:join': {
-        const { code, playerId, name, profileKey } = msg;
+        const { code, profileKey } = msg;
         const s = Array.from(SESSIONS.values()).find(x => x.code === code);
         if (!s) {
-          ws.send(JSON.stringify({type:'error', message:'Session not found'}));
+          ws.send(JSON.stringify({ type: 'error', message: 'Session not found' }));
           return;
         }
-        s.sockets.push(ws);
-        const p = ensurePlayer(s, playerId);
-        p.name = name;
-        p.profileKey = profileKey;
-        p.lastActive = now();
+
+        // TEMP: charger les profils à la volée
+        const profiles = require('./data/profiles.fr.json');
+        const profile = profiles.find(p => p.key === profileKey);
+        if (!profile) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Profile not found' }));
+            return;
+        }
+
+        const playerId = nanoid(12);
+        const p = { id: playerId, ws, profile, answered: false, lastActive: now() };
+        s.players.push(p);
         setStatusLight(p);
 
         logServer(s, p, 'student:join', `Joined with profile ${profileKey}`);
@@ -236,13 +173,29 @@ wss.on('connection', (ws) => {
         p.answered = TYPES.every(k => decs[k]);
         setStatusLight(p);
 
-        logServer(s, p, 'decision', `${t}:${msg.choiceId||'—'}`, { extra: msg.extra||null });
-        broadcastState(s); // broadcast every decision for now
+        logServer(s, p, 'student:decision', `Answered ${t} (answered all: ${p.answered})`);
+        broadcastState(s);
+        break;
+      }
+    }
+  });
+
+  ws.on('close', () => {
+    // Find session and player to remove
+    for (const s of SESSIONS.values()) {
+      const playerIndex = s.players.findIndex(p => p.ws === ws);
+      if (playerIndex !== -1) {
+        const p = s.players[playerIndex];
+        logServer(s, p, 'student:disconnect', 'Player disconnected');
+        s.players.splice(playerIndex, 1);
+        broadcastState(s);
+        break;
+      }
+      if (s.hostWs === ws) {
+        logServer(s, null, 'host:disconnect', 'Host disconnected, closing session');
+        SESSIONS.delete(s.id);
         break;
       }
     }
   });
 });
-
-console.log('Server logic loaded.');
-
