@@ -1,9 +1,11 @@
-// server-2.js — vNext (patched)
-// Fixes:
-// 1) Robust file loading from ./data OR ./Data with alternate filenames (FR).
-// 2) Random profile assignment on student join when none provided (avoid duplicates).
-// 3) Basic card drawing from deck_standard_fr.json so that cards come from your deck.
-//    - Adds host:start and host:next events which draw 4 unique cards per turn (Proposition-first).
+// server-2.js — vNext (patched with ABCDE + modes)
+// Adds/keeps:
+// - Tolerant file loading (data/Data) with FR filenames
+// - Random non-duplicate profiles
+// - Deck-based drawing (4 cards per TURN)
+// - Game modes: 'long' (42 turns, ABCDE subphases) and 'blitz' (10 turns, no subphases)
+// - Phase engine: host:nextPhase cycles A→E (long mode only), host:nextTurn advances turn
+// - State exposes: {mode, turn, maxTurns, subphaseIndex, phaseLetter, currentCards}
 
 const path = require('path');
 const fs = require('fs');
@@ -55,9 +57,6 @@ console.log(`- ${deckLogic?.rules?.length ?? 0} rules`);
 console.log(`- ${profiles?.length ?? 0} profiles`);
 
 // ===== Static =====
-app.use('/data', express.static(findExistingFile(['.']) ? path.join(findExistingFile(['.']), '..') : path.join(__dirname, 'data')));
-
-// Basic health
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 const server = app.listen(PORT, () => {
@@ -91,15 +90,26 @@ const setStatusLight = (p) => {
   p.status = p.answered ? 'green' : (isFresh ? 'yellow' : 'red');
 };
 
-// Send state to all players in a session
 const broadcastState = (s) => {
-  const state = JSON.stringify({ type: 'host:state', session: s });
-  s.players.forEach(p => p.ws.send(state));
-  if (s.hostWs) s.hostWs.send(state);
+  const snapshot = JSON.stringify({ type: 'host:state', session: {
+    id: s.id,
+    code: s.code,
+    mode: s.mode,
+    maxTurns: s.maxTurns,
+    turn: s.turn,
+    subphaseIndex: s.subphaseIndex,
+    phaseLetter: s.phaseLetter,
+    players: s.players.map(p => ({ id: p.id, profile: p.profile, status: p.status })),
+    currentCards: s.currentCards || [],
+    createdAt: s.createdAt
+  }});
+  s.players.forEach(p => p.ws.send(snapshot));
+  if (s.hostWs) s.hostWs.send(snapshot);
 };
 
 const logServer = (s, p, event, msg) => {
-  const turn = s ? `T${s.turn}` : 'T?';
+  const phase = s ? (s.phaseLetter ? `(${s.phaseLetter})` : '') : '';
+  const turn = s ? `T${s.turn}${phase}` : 'T?';
   const profile = p ? `P:${p.profile?.name ?? '??'}`: 'SYS';
   console.log(`[${s?.code ?? '----'}] ${turn} | ${profile} | ${event} | ${msg}`);
 };
@@ -125,7 +135,6 @@ function drawNCards(session, n = 4) {
     const pile = session.piles.get(pileName);
     while (pile && pile.length && drawn.length < n) {
       const card = pile.shift();
-      // Avoid duplicates across turns within a session
       const seen = session.seenCardIds || (session.seenCardIds = new Set());
       if (seen.has(card.id)) continue;
       seen.add(card.id);
@@ -133,7 +142,6 @@ function drawNCards(session, n = 4) {
     }
     if (drawn.length >= n) break;
   }
-  // Fallback: draw from any remaining pile if not enough
   if (drawn.length < n) {
     for (const pile of session.piles.values()) {
       while (pile && pile.length && drawn.length < n) {
@@ -150,10 +158,38 @@ function drawNCards(session, n = 4) {
   return drawn;
 }
 
+function setMode(session, mode) {
+  session.mode = (mode === 'blitz') ? 'blitz' : 'long';
+  session.maxTurns = session.mode === 'blitz' ? 10 : 42;
+  // subphases only in long mode
+  session.subphaseIndex = session.mode === 'long' ? 0 : null;
+  session.phaseLetter = session.mode === 'long' ? 'A' : null;
+}
+
 function nextTurn(session) {
-  session.turn = (session.turn || 0) + 1;
+  if (!session.turn) session.turn = 0;
+  session.turn += 1;
+  // reset subphase at start of each turn (long mode)
+  if (session.mode === 'long') {
+    session.subphaseIndex = 0;
+    session.phaseLetter = 'A';
+  }
   const cards = drawNCards(session, 4);
-  logServer(session, null, 'host:draw', `Drew ${cards.length} cards from deck_standard_fr.json`);
+  logServer(session, null, 'host:draw', `Drew ${cards.length} cards`);
+}
+
+function nextPhase(session) {
+  if (session.mode !== 'long') return; // no subphases in blitz
+  if (session.subphaseIndex == null) session.subphaseIndex = 0;
+  const idx = session.subphaseIndex + 1;
+  if (idx >= 5) {
+    // already at E -> require host:nextTurn to proceed
+    session.subphaseIndex = 4;
+    session.phaseLetter = 'E';
+  } else {
+    session.subphaseIndex = idx;
+    session.phaseLetter = ['A','B','C','D','E'][idx];
+  }
 }
 
 // ===== WebSocket handling =====
@@ -177,30 +213,57 @@ wss.on('connection', (ws) => {
           players: [],
           turn: 0,
           decisions: {},
-          createdAt: now(),
+          createdAt: new Date().toISOString(),
           piles: null,
           currentCards: [],
           seenCardIds: new Set(),
+          mode: 'long',
+          maxTurns: 42,
+          subphaseIndex: 0,
+          phaseLetter: 'A',
         };
         SESSIONS.set(sessionId, s);
-        ws.send(JSON.stringify({ type: 'host:created', session: s }));
+        ws.send(JSON.stringify({ type: 'host:created', session: { id: s.id, code: s.code } }));
         console.log(`[${code}] Host created session ${sessionId}`);
+        break;
+      }
+
+      case 'host:setMode': {
+        const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
+        if (!s) return;
+        setMode(s, msg.mode);
+        logServer(s, null, 'host:setMode', `Mode=${s.mode}, maxTurns=${s.maxTurns}`);
+        broadcastState(s);
         break;
       }
 
       case 'host:start': {
         const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
         if (!s) return;
-        // Build piles & draw first turn
+        if (msg.mode) setMode(s, msg.mode); // optional override from client
         s.piles = buildPilesFromDeck(deckStandard);
         nextTurn(s);
         broadcastState(s);
         break;
       }
 
+      case 'host:nextPhase': {
+        const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
+        if (!s) return;
+        nextPhase(s);
+        broadcastState(s);
+        break;
+      }
+
+      case 'host:nextTurn': // alias for clarity
       case 'host:next': {
         const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
         if (!s) return;
+        if (s.turn >= s.maxTurns) {
+          logServer(s, null, 'host:next', `Reached maxTurns=${s.maxTurns}`);
+          broadcastState(s);
+          break;
+        }
         nextTurn(s);
         broadcastState(s);
         break;
@@ -229,7 +292,7 @@ wss.on('connection', (ws) => {
         }
 
         const playerId = nanoid(12);
-        const p = { id: playerId, ws, profile: chosen, answered: false, lastActive: now() };
+        const p = { id: playerId, ws, profile: chosen, answered: false, lastActive: new Date().toISOString() };
         s.players.push(p);
         setStatusLight(p);
 
@@ -244,7 +307,7 @@ wss.on('connection', (ws) => {
         if (!s) return;
         const p = findPlayer(s, msg.playerId);
         if (!p) return;
-        p.lastActive = now();
+        p.lastActive = new Date().toISOString();
         setStatusLight(p);
         broadcastState(s);
         break;
@@ -255,11 +318,11 @@ wss.on('connection', (ws) => {
         if (!s) return;
         const p = findPlayer(s, msg.playerId);
         if (!p) return;
-        p.lastActive = now();
+        p.lastActive = new Date().toISOString();
         const turn = s.turn;
         const decs = ensureDecisions(s, p.id, turn);
         const t = (msg.cardType||'').toLowerCase();
-        decs[t] = { choiceId: msg.choiceId||'CHOICE', extra: msg.extra||null };
+        decs[t] = { choiceId: msg.choiceId||'CHOICE', extra: msg.extra||null, phase: s.phaseLetter, subphase: s.subphaseIndex };
 
         // If all answered types present -> mark answered
         const answeredTypes = Object.keys(decs);
@@ -284,7 +347,6 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    // Remove from any session
     for (const s of SESSIONS.values()) {
       const idx = s.players.findIndex(pl => pl.ws === ws);
       if (idx !== -1) {
