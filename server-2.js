@@ -1,11 +1,17 @@
-// server-2.js — vNext (patched with ABCDE + modes)
-// Adds/keeps:
-// - Tolerant file loading (data/Data) with FR filenames
-// - Random non-duplicate profiles
-// - Deck-based drawing (4 cards per TURN)
-// - Game modes: 'long' (42 turns, ABCDE subphases) and 'blitz' (10 turns, no subphases)
-// - Phase engine: host:nextPhase cycles A→E (long mode only), host:nextTurn advances turn
-// - State exposes: {mode, turn, maxTurns, subphaseIndex, phaseLetter, currentCards}
+// server-2.js — Unified Build (compat + modes + ABCDE + random profiles + tolerant file loading)
+//
+// Includes:
+// - Robust file loading from ./data OR ./Data with FR filename variants
+// - Static serving of ./public (host.html, student.html) and /health
+// - WebSocket path tolerance: /ws, /socket, or even '/' (for older clients)
+// - Session creation fixed: emits BOTH 'host:created' and initial 'host:state'
+// - Modes: 'long' (42 turns, subphases ABCDE) and 'blitz' (10 turns, no subphases)
+// - host:nextPhase to advance A→E (long mode); host:nextTurn/host:next to advance turns
+// - Random non-duplicate profiles on student:join (or 'random' key)
+// - Deck-based draw (4 cards per turn) from deck_standard_fr.json (ordered piles + fallback)
+//
+// NOTE: deck_logic.json is loaded and available; rule application is not enforced automatically here.
+//       If you want automatic rule evaluation, we can add a pure engine on top of this backbone.
 
 const path = require('path');
 const fs = require('fs');
@@ -57,6 +63,14 @@ console.log(`- ${deckLogic?.rules?.length ?? 0} rules`);
 console.log(`- ${profiles?.length ?? 0} profiles`);
 
 // ===== Static =====
+const publicDir = path.join(__dirname, 'public');
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+  app.get('/', (req, res) => res.sendFile(path.join(publicDir, 'host.html')));
+} else {
+  console.warn('Warning: ./public not found — static pages will not be served.');
+}
+
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 const server = app.listen(PORT, () => {
@@ -66,7 +80,9 @@ const server = app.listen(PORT, () => {
 // ===== WebSocket =====
 const wss = new WebSocketServer({ noServer: true });
 server.on('upgrade', (req, socket, head) => {
-  if (req.url === '/ws') {
+  // Tolerant: accept /ws, /socket, '/'
+  const url = (req.url || '/');
+  if (url.startsWith('/ws') || url.startsWith('/socket') || url === '/' || url.startsWith('/?')) {
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit('connection', ws, req);
     });
@@ -90,21 +106,23 @@ const setStatusLight = (p) => {
   p.status = p.answered ? 'green' : (isFresh ? 'yellow' : 'red');
 };
 
+const snapshotOf = (s) => ({
+  id: s.id,
+  code: s.code,
+  mode: s.mode,
+  maxTurns: s.maxTurns,
+  turn: s.turn,
+  subphaseIndex: s.subphaseIndex,
+  phaseLetter: s.phaseLetter,
+  players: s.players.map(p => ({ id: p.id, profile: p.profile, status: p.status })),
+  currentCards: s.currentCards || [],
+  createdAt: s.createdAt
+});
+
 const broadcastState = (s) => {
-  const snapshot = JSON.stringify({ type: 'host:state', session: {
-    id: s.id,
-    code: s.code,
-    mode: s.mode,
-    maxTurns: s.maxTurns,
-    turn: s.turn,
-    subphaseIndex: s.subphaseIndex,
-    phaseLetter: s.phaseLetter,
-    players: s.players.map(p => ({ id: p.id, profile: p.profile, status: p.status })),
-    currentCards: s.currentCards || [],
-    createdAt: s.createdAt
-  }});
-  s.players.forEach(p => p.ws.send(snapshot));
-  if (s.hostWs) s.hostWs.send(snapshot);
+  const payload = JSON.stringify({ type: 'host:state', session: snapshotOf(s) });
+  s.players.forEach(p => { try { p.ws.send(payload); } catch(_){} });
+  if (s.hostWs) { try { s.hostWs.send(payload); } catch(_){} }
 };
 
 const logServer = (s, p, event, msg) => {
@@ -161,7 +179,6 @@ function drawNCards(session, n = 4) {
 function setMode(session, mode) {
   session.mode = (mode === 'blitz') ? 'blitz' : 'long';
   session.maxTurns = session.mode === 'blitz' ? 10 : 42;
-  // subphases only in long mode
   session.subphaseIndex = session.mode === 'long' ? 0 : null;
   session.phaseLetter = session.mode === 'long' ? 'A' : null;
 }
@@ -169,7 +186,6 @@ function setMode(session, mode) {
 function nextTurn(session) {
   if (!session.turn) session.turn = 0;
   session.turn += 1;
-  // reset subphase at start of each turn (long mode)
   if (session.mode === 'long') {
     session.subphaseIndex = 0;
     session.phaseLetter = 'A';
@@ -179,11 +195,10 @@ function nextTurn(session) {
 }
 
 function nextPhase(session) {
-  if (session.mode !== 'long') return; // no subphases in blitz
+  if (session.mode !== 'long') return;
   if (session.subphaseIndex == null) session.subphaseIndex = 0;
   const idx = session.subphaseIndex + 1;
   if (idx >= 5) {
-    // already at E -> require host:nextTurn to proceed
     session.subphaseIndex = 4;
     session.phaseLetter = 'E';
   } else {
@@ -194,11 +209,12 @@ function nextPhase(session) {
 
 // ===== WebSocket handling =====
 wss.on('connection', (ws) => {
-  ws.on('message', (message) => {
+  ws.on('message', (raw) => {
     let msg;
     try {
-      msg = JSON.parse(message);
+      msg = JSON.parse(raw);
     } catch (e) {
+      console.warn('Ignoring non-JSON message');
       return;
     }
 
@@ -213,7 +229,7 @@ wss.on('connection', (ws) => {
           players: [],
           turn: 0,
           decisions: {},
-          createdAt: new Date().toISOString(),
+          createdAt: now(),
           piles: null,
           currentCards: [],
           seenCardIds: new Set(),
@@ -223,7 +239,9 @@ wss.on('connection', (ws) => {
           phaseLetter: 'A',
         };
         SESSIONS.set(sessionId, s);
-        ws.send(JSON.stringify({ type: 'host:created', session: { id: s.id, code: s.code } }));
+        // Emit both created + initial state
+        try { ws.send(JSON.stringify({ type: 'host:created', session: { id: s.id, code: s.code } })); } catch(_){}
+        broadcastState(s);
         console.log(`[${code}] Host created session ${sessionId}`);
         break;
       }
@@ -240,7 +258,7 @@ wss.on('connection', (ws) => {
       case 'host:start': {
         const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
         if (!s) return;
-        if (msg.mode) setMode(s, msg.mode); // optional override from client
+        if (msg.mode) setMode(s, msg.mode);
         s.piles = buildPilesFromDeck(deckStandard);
         nextTurn(s);
         broadcastState(s);
@@ -255,8 +273,8 @@ wss.on('connection', (ws) => {
         break;
       }
 
-      case 'host:nextTurn': // alias for clarity
-      case 'host:next': {
+      case 'host:next':
+      case 'host:nextTurn': {
         const s = Array.from(SESSIONS.values()).find(x => x.code === msg.code);
         if (!s) return;
         if (s.turn >= s.maxTurns) {
@@ -273,11 +291,9 @@ wss.on('connection', (ws) => {
         const { code, profileKey } = msg;
         const s = Array.from(SESSIONS.values()).find(x => x.code === code);
         if (!s) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Session not found' }));
+          try { ws.send(JSON.stringify({ type: 'error', message: 'Session not found' })); } catch(_){}
           return;
         }
-
-        // Random (non-duplicate) profile if not provided or set to 'random'
         let chosen;
         if (!profileKey || profileKey === 'random') {
           const already = new Set(s.players.map(pl => pl.profile?.key));
@@ -287,17 +303,15 @@ wss.on('connection', (ws) => {
           chosen = profiles.find(p => p.key === profileKey);
         }
         if (!chosen) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Profile not found' }));
+          try { ws.send(JSON.stringify({ type: 'error', message: 'Profile not found' })); } catch(_){}
           return;
         }
-
         const playerId = nanoid(12);
-        const p = { id: playerId, ws, profile: chosen, answered: false, lastActive: new Date().toISOString() };
+        const p = { id: playerId, ws, profile: chosen, answered: false, lastActive: now() };
         s.players.push(p);
         setStatusLight(p);
-
         logServer(s, p, 'student:join', `Joined with profile ${chosen.key}`);
-        ws.send(JSON.stringify({ type:'student:joined', code, player: { id: p.id, profile: p.profile } }));
+        try { ws.send(JSON.stringify({ type:'student:joined', code, player: { id: p.id, profile: p.profile } })); } catch(_){}
         broadcastState(s);
         break;
       }
@@ -307,7 +321,7 @@ wss.on('connection', (ws) => {
         if (!s) return;
         const p = findPlayer(s, msg.playerId);
         if (!p) return;
-        p.lastActive = new Date().toISOString();
+        p.lastActive = now();
         setStatusLight(p);
         broadcastState(s);
         break;
@@ -318,13 +332,11 @@ wss.on('connection', (ws) => {
         if (!s) return;
         const p = findPlayer(s, msg.playerId);
         if (!p) return;
-        p.lastActive = new Date().toISOString();
+        p.lastActive = now();
         const turn = s.turn;
         const decs = ensureDecisions(s, p.id, turn);
         const t = (msg.cardType||'').toLowerCase();
         decs[t] = { choiceId: msg.choiceId||'CHOICE', extra: msg.extra||null, phase: s.phaseLetter, subphase: s.subphaseIndex };
-
-        // If all answered types present -> mark answered
         const answeredTypes = Object.keys(decs);
         p.answered = answeredTypes.length >= 4;
         setStatusLight(p);
