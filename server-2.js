@@ -77,14 +77,40 @@ function loadDeckStandard() {
   return [];
 }
 
-function cardFromJSON(turn, type){
+/* function cardFromJSON(turn, type){
   const deck = loadDeckStandard();
   const nodes = deck.nodes;
-  const propositions = nodes.filter(n => n.pile === type); 
+  const propositions = nodes.filter(n => n.pile.toLowerCase() === type.toLowerCase()); 
   if (propositions.length === 0) return null;
   const idx = Math.floor(Math.random() * propositions.length);
   const selected_proposition = propositions[idx];
-  const isInvest = (type==='proposition');
+  const isInvest = (type==='Proposition');
+  return {
+    type,
+    titre: selected_proposition.title,
+    texte: selected_proposition.category || '',
+    requiresInvestment: isInvest,
+    resume: `Résumé ${type} — année ${turn}.`,
+    impacts: `Impacts financiers potentiels à l'année ${turn}.`,
+    exemples: `Exemples concrets liés à ${type} (année ${turn}).`,
+    conseils: `Conseils pour gérer ${type} à l'année ${turn}.`,
+    choices: !isInvest ? [
+      { id:'A', label:'Accepter' },
+      { id:'B', label:'Refuser' }
+    ] : undefined
+  };
+} */
+
+function cardFromJSON(turn, type){
+  const deck = loadDeckStandard();
+  const nodes = Array.isArray(deck.nodes) ? deck.nodes : [];
+  const propositions = nodes.filter(n => 
+    typeof n.pile === 'string' && n.pile.toLowerCase() === type.toLowerCase()
+  );
+  if (propositions.length === 0) return null;
+  const idx = Math.floor(Math.random() * propositions.length);
+  const selected_proposition = propositions[idx];
+  const isInvest = (type.toLowerCase() === 'proposition');
   return {
     type,
     titre: selected_proposition.title,
