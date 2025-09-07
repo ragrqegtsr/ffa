@@ -113,7 +113,7 @@ function cardFromJSON(turn, type){
   const isInvest = (type.toLowerCase() === 'proposition');
   return {
     type,
-    titre: selected_proposition.title,
+    titre: selected_proposition.title || '',
     texte: selected_proposition.category || '',
     requiresInvestment: isInvest,
     resume: `Résumé ${type} — année ${turn}.`,
