@@ -79,7 +79,8 @@ function loadDeckStandard() {
 
 function cardFromJSON(turn, type){
   const deck = loadDeckStandard();
-  const propositions = deck.filter(card => card.pile === type);
+  const nodes = deck.nodes;
+  const propositions = nodes.filter(n => n.pile === type); 
   if (propositions.length === 0) return null;
   const idx = Math.floor(Math.random() * propositions.length);
   return propositions[idx];
