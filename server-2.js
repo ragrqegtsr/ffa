@@ -63,6 +63,29 @@ function makeBlankPlayer(name){
   };
 }
 
+function loadDeckStandard() {
+  const deckPath = path.join(__dirname, 'data', 'e-deck_standard.json');
+  try {
+    if (fs.existsSync(deckPath)) {
+      const raw = fs.readFileSync(deckPath, 'utf-8');
+      const deck = JSON.parse(raw);
+      return deck;
+    }
+  } catch (e) {
+    console.error('Error loading e-deck_standard:', e);
+  }
+  return [];
+}
+
+function cardFromJSON(turn, type){
+  const deck = loadDeckStandard();
+  const propositions = deck.filter(card => card.pile === type);
+  if (propositions.length === 0) return null;
+  const idx = Math.floor(Math.random() * propositions.length);
+  return propositions[idx];
+}
+
+
 function cardFromTemplate(turn, type){
   // Generic demo content – replace by actual content when ready
   const titles = {
@@ -100,10 +123,10 @@ function generateDeck(){
     deck.push({
       turn: t,
       age: 18 + (t-1),
-      evenement: cardFromTemplate(t, 'evenement'),
-      proposition: cardFromTemplate(t, 'proposition'),
-      contrainte: cardFromTemplate(t, 'contrainte'),
-      bonus: cardFromTemplate(t, 'bonus')
+      evenement: cardFromJSON(t, 'evenement'),
+      proposition: cardFromJSON(t, 'proposition'),
+      contrainte: cardFromJSON(t, 'contrainte'),
+      bonus: cardFromJSON(t, 'bonus')
     });
   }
   return deck;
@@ -114,7 +137,7 @@ function loadProfiles(lang){
   const safeLang = (lang||'fr').toLowerCase();
   const candidates = [
     path.join(__dirname, 'data', `profiles.${safeLang}.json`),
-    path.join(__dirname, 'data', 'profiles.fr.json')
+    path.join(__dirname, 'data', 'profiles_fr.json')
   ];
   for(const p of candidates){
     try{
