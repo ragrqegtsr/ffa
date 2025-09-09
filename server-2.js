@@ -63,71 +63,6 @@ function makeBlankPlayer(name){
   };
 }
 
-function loadDeckStandard() {
-  const deckPath = path.join(__dirname, 'data', 'e-deck_standard.json');
-  try {
-    if (fs.existsSync(deckPath)) {
-      const raw = fs.readFileSync(deckPath, 'utf-8');
-      const deck = JSON.parse(raw);
-      return deck;
-    }
-  } catch (e) {
-    console.error('Error loading e-deck_standard:', e);
-  }
-  return [];
-}
-
-/* function cardFromJSON(turn, type){
-  const deck = loadDeckStandard();
-  const nodes = deck.nodes;
-  const propositions = nodes.filter(n => n.pile.toLowerCase() === type.toLowerCase()); 
-  if (propositions.length === 0) return null;
-  const idx = Math.floor(Math.random() * propositions.length);
-  const selected_proposition = propositions[idx];
-  const isInvest = (type==='Proposition');
-  return {
-    type,
-    titre: selected_proposition.title,
-    texte: selected_proposition.category || '',
-    requiresInvestment: isInvest,
-    resume: `Résumé ${type} — année ${turn}.`,
-    impacts: `Impacts financiers potentiels à l'année ${turn}.`,
-    exemples: `Exemples concrets liés à ${type} (année ${turn}).`,
-    conseils: `Conseils pour gérer ${type} à l'année ${turn}.`,
-    choices: !isInvest ? [
-      { id:'A', label:'Accepter' },
-      { id:'B', label:'Refuser' }
-    ] : undefined
-  };
-} */
-
-function cardFromJSON(turn, type){
-  const deck = loadDeckStandard();
-  const nodes = Array.isArray(deck.nodes) ? deck.nodes : [];
-  const propositions = nodes.filter(n => 
-    typeof n.pile === 'string' && n.pile.toLowerCase() === type.toLowerCase()
-  );
-  if (propositions.length === 0) return null;
-  const idx = Math.floor(Math.random() * propositions.length);
-  const selected_proposition = propositions[idx];
-  const isInvest = (type.toLowerCase() === 'proposition');
-  return {
-    type,
-    titre: selected_proposition.title || '',
-    texte: selected_proposition.category || '',
-    requiresInvestment: isInvest,
-    resume: `Résumé ${type} — année ${turn}.`,
-    impacts: `Impacts financiers potentiels à l'année ${turn}.`,
-    exemples: `Exemples concrets liés à ${type} (année ${turn}).`,
-    conseils: `Conseils pour gérer ${type} à l'année ${turn}.`,
-    choices: !isInvest ? [
-      { id:'A', label:'Accepter' },
-      { id:'B', label:'Refuser' }
-    ] : undefined
-  };
-}
-
-
 function cardFromTemplate(turn, type){
   // Generic demo content – replace by actual content when ready
   const titles = {
@@ -165,10 +100,10 @@ function generateDeck(){
     deck.push({
       turn: t,
       age: 18 + (t-1),
-      evenement: cardFromJSON(t, 'evenement'),
-      proposition: cardFromJSON(t, 'proposition'),
-      contrainte: cardFromJSON(t, 'contrainte'),
-      bonus: cardFromJSON(t, 'bonus')
+      evenement: cardFromTemplate(t, 'evenement'),
+      proposition: cardFromTemplate(t, 'proposition'),
+      contrainte: cardFromTemplate(t, 'contrainte'),
+      bonus: cardFromTemplate(t, 'bonus')
     });
   }
   return deck;
@@ -179,7 +114,7 @@ function loadProfiles(lang){
   const safeLang = (lang||'fr').toLowerCase();
   const candidates = [
     path.join(__dirname, 'data', `profiles.${safeLang}.json`),
-    path.join(__dirname, 'data', 'profiles_fr.json')
+    path.join(__dirname, 'data', 'profiles.fr.json')
   ];
   for(const p of candidates){
     try{
